@@ -27,11 +27,12 @@ const player = new Player();
 
 // Load in our resources
 let files = [{name:"delorean",url:"/models/delorean.glb"},
-             {name:"sportscar",url:"/models/sportscar.glb"}];
+             {name:"sportscar",url:"/models/sportscar.glb"},
+             {name:"zombie",url:"/models/zombie.glb"},];
 const resources = new Resources(files);
 await resources.loadAll();
 
-player.setModel(resources.get("delorean"));
+player.setModel(resources.get("zombie"));
 
 
 // Setup our scene
