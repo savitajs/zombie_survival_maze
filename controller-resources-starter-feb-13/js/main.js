@@ -3,6 +3,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Player } from './Behaviour/Player.js';
 import { Controller } from './Behaviour/Controller.js';
 import { Resources } from './Util/Resources.js';
+import { FlowField } from './Util/FlowField.js';
+import { ZombieAI } from './Behaviour/ZombieAI.js';
 
 // Create Scene
 const scene = new THREE.Scene();
@@ -34,6 +36,22 @@ await resources.loadAll();
 
 player.setModel(resources.get("zombie"));
 
+// Create flow field
+const flowField = new FlowField(100, 100, 5);
+scene.add(flowField.debugMesh);
+
+// Create zombies
+const zombies = [];
+for(let i = 0; i < 15; i++) {
+    const zombie = new ZombieAI();
+    zombie.location.set(
+        Math.random() * 80 - 40,
+        0,
+        Math.random() * 80 - 40
+    );
+    scene.add(zombie.gameObject);
+    zombies.push(zombie);
+}
 
 // Setup our scene
 function init() {
@@ -75,6 +93,12 @@ function animate() {
   let deltaTime = clock.getDelta();
 
   player.update(deltaTime, bounds, controller);
+  
+  flowField.update(player.location);
+  
+  zombies.forEach(zombie => {
+      zombie.update(deltaTime, bounds, flowField, player.location, zombies);
+  });
 }
 
 
