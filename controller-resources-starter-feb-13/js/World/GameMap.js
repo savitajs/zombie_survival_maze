@@ -11,13 +11,10 @@ export class GameMap {
   // Constructor for our GameMap class
   constructor() {
   
-    // Restore original tile size
-    this.tileSize = 10;
-
-    // Restore original bounds
+    // Initialize bounds - making the overall map larger
     this.bounds = new THREE.Box3(
-      new THREE.Vector3(-100, 0, -100),
-      new THREE.Vector3(100, 0, 100)
+      new THREE.Vector3(-250, 0, -250),  // Increased bounds from -100 to -150
+      new THREE.Vector3(250, 0, 250)     // Increased bounds from 100 to 150
     );
 
     // worldSize is a Vector3 with 
@@ -25,11 +22,14 @@ export class GameMap {
     this.worldSize = new THREE.Vector3();
     this.bounds.getSize(this.worldSize);
 
-    // Calculate columns and rows based on original size
+    // Let's define a tile size - increased further for wider routes
+    this.tileSize = 30;  // Increased from 14 to 20
+
+    // Columns and rows of our tile world
     this.cols = Math.floor(this.worldSize.x / this.tileSize);
     this.rows = Math.floor(this.worldSize.z / this.tileSize);
 
-    // Create graph with proper dimensions
+    // Create our graph!
     this.mapGraph = new MapGraph(this.cols, this.rows);
     
     
@@ -45,11 +45,7 @@ export class GameMap {
     // Create our game object
     this.gameObject = this.mapRenderer.createRendering();
 
-    console.log("MapGraph dimensions:", this.mapGraph.width, this.mapGraph.height);
-
   }
-
-  
 
   // Method to get from node to world location
   localize(node) {
@@ -67,11 +63,109 @@ export class GameMap {
     return this.mapGraph.getAt(nodeI, nodeJ);
   }
 
-  isWall(x, z) {
-    if (x < 0 || x >= this.mapGraph.width || z < 0 || z >= this.mapGraph.height) {
+  // Check if a position is near a wall
+  isWallNearby(position, direction, distance) {
+    const node = this.quantize(position);
+    if (!node) return true;
+    
+    // Cast a ray in the given direction to check for walls
+    const rayDirection = direction.clone().normalize();
+    const rayCaster = new THREE.Raycaster(position, rayDirection, 0, distance);
+    
+    // Get wall positions around current node
+    const walls = this.getWallPositions(node);
+    
+    // Check if the ray intersects any wall
+    for (const wall of walls) {
+      const wallBox = new THREE.Box3();
+      const halfSize = this.tileSize / 2;
+      wallBox.min.set(wall.x - halfSize, 0, wall.z - halfSize);
+      wallBox.max.set(wall.x + halfSize, this.mapRenderer.wallHeight, wall.z + halfSize);
+      
+      // Simple ray-box intersection
+      if (this.rayIntersectsBox(position, rayDirection, wallBox, distance)) {
         return true;
+      }
     }
-    return this.mapGraph.getAt(x, z) === 0; // Assuming 0 represents walls
+    
+    return false;
+  }
+  
+  // Get positions of walls around a node
+  getWallPositions(node) {
+    const walls = [];
+    const pos = this.localize(node);
+    const half = this.tileSize / 2;
+    
+    // Check in all four directions
+    const directions = [
+      { i: -1, j: 0, x: -half, z: 0 },
+      { i: 1, j: 0, x: half, z: 0 },
+      { i: 0, j: -1, x: 0, z: -half },
+      { i: 0, j: 1, x: 0, z: half }
+    ];
+    
+    for (const dir of directions) {
+      if (!node.hasEdgeTo(node.i + dir.i, node.j + dir.j)) {
+        walls.push(new THREE.Vector3(
+          pos.x + dir.x,
+          pos.y,
+          pos.z + dir.z
+        ));
+      }
+    }
+    
+    return walls;
+  }
+  
+  // Simple ray-box intersection
+  rayIntersectsBox(origin, direction, box, maxDistance) {
+    const invDir = new THREE.Vector3(
+      1.0 / direction.x,
+      1.0 / direction.y,
+      1.0 / direction.z
+    );
+    
+    const tMin = new THREE.Vector3(
+      (box.min.x - origin.x) * invDir.x,
+      (box.min.y - origin.y) * invDir.y,
+      (box.min.z - origin.z) * invDir.z
+    );
+    
+    const tMax = new THREE.Vector3(
+      (box.max.x - origin.x) * invDir.x,
+      (box.max.y - origin.y) * invDir.y,
+      (box.max.z - origin.z) * invDir.z
+    );
+    
+    const t1 = new THREE.Vector3(
+      Math.min(tMin.x, tMax.x),
+      Math.min(tMin.y, tMax.y),
+      Math.min(tMin.z, tMax.z)
+    );
+    
+    const t2 = new THREE.Vector3(
+      Math.max(tMin.x, tMax.x),
+      Math.max(tMin.y, tMax.y),
+      Math.max(tMin.z, tMax.z)
+    );
+    
+    const tNear = Math.max(Math.max(t1.x, t1.y), t1.z);
+    const tFar = Math.min(Math.min(t2.x, t2.y), t2.z);
+    
+    return tFar >= tNear && tNear <= maxDistance && tFar >= 0;
   }
 
+  // Check if a world position is valid (not a wall)
+  isWall(x, z) {
+    const nodeI = Math.floor((x - this.bounds.min.x) / this.tileSize);
+    const nodeJ = Math.floor((z - this.bounds.min.z) / this.tileSize);
+    
+    if (nodeI < 0 || nodeI >= this.cols || nodeJ < 0 || nodeJ >= this.rows) {
+      return true; // Out of bounds is considered a wall
+    }
+    
+    const node = this.mapGraph.getAt(nodeI, nodeJ);
+    return !node || node.edges.length === 0;
+  }
 }

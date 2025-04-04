@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-// Remove OrbitControls import
 import { Player } from './Behaviour/Player.js';
 import { Controller } from './Behaviour/Controller.js';
 import { GameMap } from './World/GameMap.js';
@@ -8,7 +7,6 @@ import { GameMap } from './World/GameMap.js';
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer();
-// Remove OrbitControls initialization
 
 // Create clock
 const clock = new THREE.Clock();
@@ -20,11 +18,26 @@ const controller = new Controller(document, camera);
 let gameMap;
 let player;
 
-// Update camera control variables
+// Camera parameters - adjusted for larger maze
+const THIRD_PERSON_DISTANCE = 5; // Adjusted distance for clear view of cone's base
+const THIRD_PERSON_HEIGHT = 3;   // Lower height to better see the cone's base
+const FIRST_PERSON_HEIGHT = 2;   // Height for first-person view
+const CAMERA_CHECK_DISTANCE = 20; // Distance for wall detection
+const FREE_CAMERA_HEIGHT = 100;   // Height for free camera view
+
+// Camera modes: 'third-person', 'first-person', or 'free'
+let cameraMode = 'third-person';
+let previousCameraMode = 'third-person'; // Store previous mode for toggling back
 let cameraAngle = 0;
-let cameraHeight = 8;  // Lower height for better player view
-let cameraDistance = 15; // Closer to player
+let cameraHeight = THIRD_PERSON_HEIGHT;
 let isDragging = false;
+
+// Free camera controls
+const freeCameraPosition = new THREE.Vector3(0, FREE_CAMERA_HEIGHT, 0);
+const freeCameraTarget = new THREE.Vector3(0, 0, 0);
+
+// Raycaster for wall detection
+const raycaster = new THREE.Raycaster();
 
 // Prevent context menu on right-click
 document.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -38,97 +51,122 @@ function onWindowResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
+// Find a valid starting position in the maze
 function getRandomMazePosition(gameMap) {
-    const maxAttempts = 100;
-    
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        // Generate random coordinates within the maze bounds
-        const x = Math.floor(Math.random() * gameMap.cols);
-        const z = Math.floor(Math.random() * gameMap.rows);
-        
-        // Check if this position is a valid path (not a wall)
-        if (!gameMap.isWall(x, z)) {
-            // Convert maze coordinates to world coordinates
-            const worldX = gameMap.bounds.min.x + (x * gameMap.tileSize) + gameMap.tileSize/2;
-            const worldZ = gameMap.bounds.min.z + (z * gameMap.tileSize) + gameMap.tileSize/2;
-            
-            console.log("Spawning player at maze position:", x, z);
-            return new THREE.Vector3(worldX, 10, worldZ);
-        }
-    }
-    
-    // Fallback to a safe position if no valid random position found
-    console.warn("Could not find random position, using fallback position");
-    return new THREE.Vector3(gameMap.tileSize * 1.5, 1, gameMap.tileSize * 1.5);
+    // Start with a known safe position - the first node in the graph
+    const startNode = gameMap.mapGraph.get(0);
+    return gameMap.localize(startNode);
 }
 
 // Setup our scene
 function init() {
-  // Basic scene setup
-  scene.background = new THREE.Color(0x333333);
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  document.body.appendChild(renderer.domElement);
+    // Basic scene setup
+    scene.background = new THREE.Color(0x333333);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
 
-  // Create map
-  gameMap = new GameMap();
-  scene.add(gameMap.gameObject);
+    // Create map
+    gameMap = new GameMap();
+    scene.add(gameMap.gameObject);
 
-  // Create player
-  player = new Player(new THREE.Color(0x00ff00));
-  const startPos = getRandomMazePosition(gameMap);
-  player.location.copy(startPos);
-  scene.add(player.gameObject);
+    // Create player
+    player = new Player(new THREE.Color(0x00ff00));
+    const startPos = getRandomMazePosition(gameMap);
+    player.location.copy(startPos);
+    scene.add(player.gameObject);
 
-  // Basic lighting
-  const ambient = new THREE.AmbientLight(0xffffff, 1);
-  scene.add(ambient);
+    // Basic lighting
+    const ambient = new THREE.AmbientLight(0xffffff, 1);
+    scene.add(ambient);
 
-  const directional = new THREE.DirectionalLight(0xffffff, 0.5);
-  directional.position.set(0, 10, 0);
-  scene.add(directional);
+    const directional = new THREE.DirectionalLight(0xffffff, 0.5);
+    directional.position.set(0, 10, 0);
+    scene.add(directional);
 
-  // Set up camera
-  // Adjust initial camera position to be closer
-  camera.position.set(
-    startPos.x, 
-    10,  // Lower height
-    startPos.z + 15 // Slightly behind player
-  );
-  camera.lookAt(startPos);
+    // Set up initial camera position behind player
+    updateCamera(0);
 
-
-  console.log("Player start position:", startPos);
-  console.log("Player location after copy:", player.location);
-  console.log("Player gameObject position:", player.gameObject.position);
-  
-
-  animate();
+    animate();
 }
 
-// animate loop
+// Check if camera would hit a wall in the given direction
+function wouldHitWall(direction, distance) {
+    return gameMap.isWallNearby(player.location, direction, distance);
+}
+
+// Toggle free camera mode
+function toggleFreeCamera() {
+    if (cameraMode !== 'free') {
+        // Store the current camera mode before switching to free mode
+        previousCameraMode = cameraMode;
+        cameraMode = 'free';
+        
+        // Set up free camera initial position
+        freeCameraPosition.set(
+            player.location.x, 
+            FREE_CAMERA_HEIGHT,
+            player.location.z
+        );
+        freeCameraTarget.copy(player.location);
+    } else {
+        // Return to previous camera mode
+        cameraMode = previousCameraMode;
+    }
+}
+
+// Update camera position based on current mode
+function updateCamera(deltaTime) {
+    if (cameraMode === 'free') {
+        // Free camera handling - unchanged
+        camera.position.copy(freeCameraPosition);
+        camera.lookAt(freeCameraTarget);
+        return;
+    }
+    
+    // Get the player's forward direction (direction where the pointy part is facing)
+    const forward = player.getForwardDirection();
+    
+    // In our third person mode, position the camera behind the player and look ahead facing:
+    // Position camera a set distance behind the player (using negative forward) and a fixed height offset
+    const targetCameraPosition = player.location.clone()
+        .add(new THREE.Vector3(0, THIRD_PERSON_HEIGHT, 0))
+        .add(forward.clone().negate().multiplyScalar(THIRD_PERSON_DISTANCE));
+        
+    // Set the lookAt target to be in front of the player – so the camera faces the same direction of movement
+    const cameraLookAt = player.location.clone().add(forward.clone().multiplyScalar(10));
+    
+    // Smoothly lerp to these positions
+    camera.position.lerp(targetCameraPosition, Math.min(1.0, deltaTime * 12));
+    const tempLookAt = new THREE.Vector3().lerp(cameraLookAt, Math.min(1.0, deltaTime * 12));
+    camera.lookAt(tempLookAt);
+}
+
+// Animate loop
 function animate() {
-  requestAnimationFrame(animate);
-  
-  const deltaTime = clock.getDelta();
-  player.update(deltaTime, gameMap.bounds, controller);
-  
-  // Update camera based on controller mouse movement
-  if (controller.isMouseDown) {
-    cameraAngle += controller.mouseDelta.x * 0.01;
-    cameraHeight = Math.max(5, Math.min(30, cameraHeight - controller.mouseDelta.y * 0.1));
-  }
-  
-  // Calculate camera position
-  const targetCameraPos = new THREE.Vector3(
-    player.location.x + Math.sin(cameraAngle) * cameraDistance,
-    player.location.y + cameraHeight,
-    player.location.z + Math.cos(cameraAngle) * cameraDistance
-  );
-  
-  camera.position.lerp(targetCameraPos, 0.1);
-  camera.lookAt(player.location);
-  
-  renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+    
+    const deltaTime = clock.getDelta();
+    
+    // Update player using the controller - now using force-based movement
+    if (player && controller) {
+        player.update(deltaTime, gameMap.bounds, controller);
+        
+        // Update free camera controls if needed
+        if (cameraMode === 'free') {
+            controller.updateFreeCamera(freeCameraPosition, freeCameraTarget, deltaTime);
+        }
+        
+        // Check for camera mode toggle
+        if (controller.toggleCameraMode) {
+            toggleFreeCamera();
+            controller.toggleCameraMode = false;
+        }
+    }
+    
+    // Update camera
+    updateCamera(deltaTime);
+    
+    renderer.render(scene, camera);
 }
 
 init();

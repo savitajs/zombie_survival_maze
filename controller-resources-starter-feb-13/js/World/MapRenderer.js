@@ -9,10 +9,10 @@ export class MapRenderer {
   constructor(gameMap) {
     this.gameMap = gameMap;
 
-    // Wall dimensions based on tile size
+    // Wall dimensions based on tile size - adjusted for proportions
     this.wallDepth = this.gameMap.tileSize * 0.1;
     this.wallWidth = this.gameMap.tileSize + this.wallDepth;
-    this.wallHeight = this.gameMap.tileSize;
+    this.wallHeight = this.gameMap.tileSize; // Slightly lower walls for better visibility
   }
  
   // To create the actual game object
