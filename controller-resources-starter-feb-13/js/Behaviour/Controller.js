@@ -38,6 +38,7 @@ export class Controller {
     this.mouseY = 0;
     this.mouseDelta = new THREE.Vector2();
     this.isMouseDown = false;
+    this.mouseSensitivity = 0.005;
 
     // Set up event listeners
     this.doc.addEventListener('keydown', this.handleEvent.bind(this));
@@ -99,10 +100,22 @@ export class Controller {
     }
     else if (event.type === 'mousedown' && event.button === 2) {
       this.isMouseDown = true;
+      this.mouseX = event.clientX;
+      this.mouseY = event.clientY;
     }
     else if (event.type === 'mouseup' && event.button === 2) {
       this.isMouseDown = false;
       this.mouseDelta.set(0, 0);
+    }
+    else if (event.type === 'mousemove' && this.isMouseDown) {
+      const deltaX = event.clientX - this.mouseX;
+      const deltaY = event.clientY - this.mouseY;
+      this.mouseX = event.clientX;
+      this.mouseY = event.clientY;
+      
+      if (this.onMouseMove) {
+        this.onMouseMove(deltaX * this.mouseSensitivity, deltaY * this.mouseSensitivity);
+      }
     }
   }
   
@@ -179,5 +192,9 @@ export class Controller {
       // Move camera away from target (up)
       cameraPosition.y += zoomSpeed * deltaTime;
     }
+  }
+
+  setMouseMoveCallback(callback) {
+    this.onMouseMove = callback;
   }
 }

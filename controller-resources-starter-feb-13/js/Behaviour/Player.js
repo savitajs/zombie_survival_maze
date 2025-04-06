@@ -68,7 +68,18 @@ export class Player extends Character {
         this.velocity.setLength(this.topSpeed);
     }
     
-    this.location.addScaledVector(this.velocity, deltaTime);
+    // Calculate next position
+    const nextPosition = this.location.clone().addScaledVector(this.velocity, deltaTime);
+    
+    // Check if next position would hit a wall
+    if (bounds.gameMap && bounds.gameMap.isWall(nextPosition.x, nextPosition.z)) {
+        // If we would hit a wall, stop movement
+        this.velocity.setLength(0);
+    } else {
+        // If no wall, update position
+        this.location.copy(nextPosition);
+    }
+    
     this.checkBounds(bounds);
     
     // Only update rotation when moving significantly

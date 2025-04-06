@@ -86,6 +86,13 @@ function init() {
     // Set up initial camera position behind player
     updateCamera(0);
 
+    // Set up mouse control callback
+    controller.setMouseMoveCallback((deltaX, deltaY) => {
+        if (cameraMode === 'third-person') {
+            cameraAngle -= deltaX;
+        }
+    });
+
     animate();
 }
 
@@ -117,28 +124,33 @@ function toggleFreeCamera() {
 // Update camera position based on current mode
 function updateCamera(deltaTime) {
     if (cameraMode === 'free') {
-        // Free camera handling - unchanged
+        controller.updateFreeCamera(freeCameraPosition, freeCameraTarget, deltaTime);
         camera.position.copy(freeCameraPosition);
         camera.lookAt(freeCameraTarget);
         return;
     }
     
-    // Get the player's forward direction (direction where the pointy part is facing)
+    // Get the player's forward direction
     const forward = player.getForwardDirection();
     
-    // In our third person mode, position the camera behind the player and look ahead facing:
-    // Position camera a set distance behind the player (using negative forward) and a fixed height offset
-    const targetCameraPosition = player.location.clone()
-        .add(new THREE.Vector3(0, THIRD_PERSON_HEIGHT, 0))
-        .add(forward.clone().negate().multiplyScalar(THIRD_PERSON_DISTANCE));
-        
-    // Set the lookAt target to be in front of the player – so the camera faces the same direction of movement
-    const cameraLookAt = player.location.clone().add(forward.clone().multiplyScalar(10));
+    // Calculate camera position for orbit
+    const distance = THIRD_PERSON_DISTANCE;
+    const cameraX = player.location.x + Math.sin(cameraAngle) * distance;
+    const cameraZ = player.location.z + Math.cos(cameraAngle) * distance;
     
-    // Smoothly lerp to these positions
-    camera.position.lerp(targetCameraPosition, Math.min(1.0, deltaTime * 12));
-    const tempLookAt = new THREE.Vector3().lerp(cameraLookAt, Math.min(1.0, deltaTime * 12));
-    camera.lookAt(tempLookAt);
+    const targetCameraPosition = new THREE.Vector3(
+        cameraX,
+        player.location.y + THIRD_PERSON_HEIGHT,
+        cameraZ
+    );
+    
+    // Look at player's position slightly above ground
+    const lookAtTarget = player.location.clone();
+    lookAtTarget.y += 1;
+    
+    // Smoothly move camera
+    camera.position.lerp(targetCameraPosition, Math.min(1.0, deltaTime * 5));
+    camera.lookAt(lookAtTarget);
 }
 
 // Animate loop
@@ -149,7 +161,7 @@ function animate() {
     
     // Update player using the controller - now using force-based movement
     if (player && controller) {
-        player.update(deltaTime, gameMap.bounds, controller);
+        player.update(deltaTime, { ...gameMap.bounds, gameMap }, controller);
         
         // Update free camera controls if needed
         if (cameraMode === 'free') {
