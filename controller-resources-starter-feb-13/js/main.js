@@ -53,7 +53,36 @@ function onWindowResize() {
 
 // Find a valid starting position in the maze
 function getRandomMazePosition(gameMap) {
-    // Start with a known safe position - the first node in the graph
+    const maxAttempts = 100; // Prevent infinite loops
+    let attempts = 0;
+
+    const width = gameMap.bounds.max.x - gameMap.bounds.min.x;
+    const height = gameMap.bounds.max.z - gameMap.bounds.min.z;
+    
+    while (attempts < maxAttempts) {
+        // Get random grid coordinates within the map bounds
+        const x = Math.floor(Math.random() * width);
+        const z = Math.floor(Math.random() * height);
+        
+        // Check if this position is not a wall
+        if (!gameMap.isWall(x, z)) {
+
+            console.log('Found valid position:', x, z);
+            // Return position with slight offset to center of cell
+            return new THREE.Vector3(
+                x + 0.5, // Center of the cell X
+                20,      // Ground level
+                z + 0.5 // Center of the cell Z
+            );
+        }
+
+        console.log('Invalid position:', x, z);
+        
+        attempts++;
+    }
+    
+    // Fallback to a known safe position if we couldn't find a random one
+    console.warn('Could not find random position, using fallback position');
     const startNode = gameMap.mapGraph.get(0);
     return gameMap.localize(startNode);
 }
@@ -72,6 +101,7 @@ function init() {
     // Create player
     player = new Player(new THREE.Color(0x00ff00));
     const startPos = getRandomMazePosition(gameMap);
+    console.log('Start Position:', startPos);
     player.location.copy(startPos);
     scene.add(player.gameObject);
 

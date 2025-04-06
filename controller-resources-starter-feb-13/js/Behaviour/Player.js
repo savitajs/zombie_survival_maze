@@ -50,33 +50,96 @@ export class Player extends Character {
         const moveForce = controller.getMoveForce();
         this.applyForce(moveForce);
         
-        // Switch to moving state if needed
         if (this.state.constructor.name !== 'MovingState') {
             this.switchState(new MovingState());
         }
     } else if (this.velocity.length() > 0) {
-        // Apply braking force when no keys are pressed but still moving
         const brakeForce = this.applyBrakes();
         this.applyForce(brakeForce);
     } else if (this.state.constructor.name !== 'IdleState') {
         this.switchState(new IdleState());
     }
     
-    // Update physics and rotate to face movement direction
+    // Update physics
     this.velocity.addScaledVector(this.acceleration, deltaTime);
     if (this.velocity.length() > this.topSpeed) {
         this.velocity.setLength(this.topSpeed);
     }
     
-    // Calculate next position
-    const nextPosition = this.location.clone().addScaledVector(this.velocity, deltaTime);
-    
-    // Check if next position would hit a wall
-    if (bounds.gameMap && bounds.gameMap.isWall(nextPosition.x, nextPosition.z)) {
-        // If we would hit a wall, stop movement
-        this.velocity.setLength(0);
-    } else {
-        // If no wall, update position
+    if (bounds.gameMap) {
+        // Calculate next position
+        const nextPosition = this.location.clone().addScaledVector(this.velocity, deltaTime);
+        
+        // Player radius (half of the cone's base size)
+        const radius = 0.75;
+        
+        // Check collision points around the player
+        const collisionPoints = [];
+        const segments = 8;
+        for (let i = 0; i < segments; i++) {
+            const angle = (i / segments) * Math.PI * 2;
+            collisionPoints.push({
+                x: nextPosition.x + Math.cos(angle) * radius,
+                z: nextPosition.z + Math.sin(angle) * radius
+            });
+        }
+        
+        // Check if any collision point would be in a wall
+        let collision = false;
+        for (const point of collisionPoints) {
+            if (bounds.gameMap.isWall(Math.floor(point.x), Math.floor(point.z))) {
+                collision = true;
+                break;
+            }
+        }
+        
+        if (collision) {
+            // If collision detected, try to slide along walls
+            const normalizedVelocity = this.velocity.clone().normalize();
+            const slideDirections = [
+                { x: normalizedVelocity.x, z: 0 },  // Slide horizontally
+                { x: 0, z: normalizedVelocity.z }   // Slide vertically
+            ];
+            
+            let canSlide = false;
+            for (const direction of slideDirections) {
+                // Try sliding in this direction
+                const slidePosition = this.location.clone();
+                slidePosition.x += direction.x * this.velocity.length() * deltaTime;
+                slidePosition.z += direction.z * this.velocity.length() * deltaTime;
+                
+                // Check if sliding would cause collision
+                let slideCollision = false;
+                for (let i = 0; i < segments; i++) {
+                    const angle = (i / segments) * Math.PI * 2;
+                    const point = {
+                        x: slidePosition.x + Math.cos(angle) * radius,
+                        z: slidePosition.z + Math.sin(angle) * radius
+                    };
+                    if (bounds.gameMap.isWall(Math.floor(point.x), Math.floor(point.z))) {
+                        slideCollision = true;
+                        break;
+                    }
+                }
+                
+                if (!slideCollision) {
+                    // We can slide in this direction
+                    this.velocity.x = this.velocity.length() * direction.x;
+                    this.velocity.z = this.velocity.length() * direction.z;
+                    nextPosition.copy(slidePosition);
+                    canSlide = true;
+                    break;
+                }
+            }
+            
+            if (!canSlide) {
+                // Can't slide, stop movement
+                this.velocity.setLength(0);
+                return;
+            }
+        }
+        
+        // Update position if no collision or after successful slide
         this.location.copy(nextPosition);
     }
     
@@ -87,7 +150,6 @@ export class Player extends Character {
         const angle = Math.atan2(this.velocity.x, this.velocity.z);
         this.gameObject.rotation.y = angle;
         
-        // Update the forward vector (pointy part direction)
         this.forward.set(
             Math.sin(angle),
             0,
