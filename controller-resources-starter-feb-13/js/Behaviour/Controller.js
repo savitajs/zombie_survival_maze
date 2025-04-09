@@ -8,11 +8,6 @@ export class Controller {
     this.doc = doc;
     this.camera = camera;
 
-    // Add pointer lock for better mouse control
-    // this.doc.addEventListener('click', () => {
-    //   this.doc.body.requestPointerLock();
-    // });
-
     // Initialize moveVector
     this.moveVector = new THREE.Vector3();
     // For force-based movement
@@ -34,11 +29,15 @@ export class Controller {
     this.cameraZoomOut = false;
     this.toggleCameraMode = false;
 
+    // Mouse tracking for camera control
     this.mouseX = 0;
     this.mouseY = 0;
     this.mouseDelta = new THREE.Vector2();
-    this.isMouseDown = false;
     this.mouseSensitivity = 0.005;
+    
+    // Flag to enable/disable mouse camera control
+    this.mouseControlEnabled = true;
+    this.rightMouseDown = false;
 
     // Set up event listeners
     this.doc.addEventListener('keydown', this.handleEvent.bind(this));
@@ -47,6 +46,14 @@ export class Controller {
     this.doc.addEventListener('mousedown', this.handleEvent.bind(this));
     this.doc.addEventListener('mouseup', this.handleEvent.bind(this));
     this.doc.addEventListener('contextmenu', (e) => e.preventDefault());
+    
+    // Add a key to toggle mouse control mode
+    this.doc.addEventListener('keydown', (e) => {
+      if (e.code === 'KeyM') {
+        this.mouseControlEnabled = !this.mouseControlEnabled;
+        console.log(`Mouse camera control ${this.mouseControlEnabled ? 'enabled' : 'disabled'}`);
+      }
+    });
   }
 
   handleEvent(event) {
@@ -93,29 +100,29 @@ export class Controller {
       this.updateMoveVector();
     }
 
-    if (event.type === 'mousemove' && document.pointerLockElement) {
-      this.mouseDelta.x = event.movementX;
-      this.mouseDelta.y = event.movementY;
-      this.isMouseDown = true;
-    }
-    else if (event.type === 'mousedown' && event.button === 2) {
-      this.isMouseDown = true;
-      this.mouseX = event.clientX;
-      this.mouseY = event.clientY;
-    }
-    else if (event.type === 'mouseup' && event.button === 2) {
-      this.isMouseDown = false;
-      this.mouseDelta.set(0, 0);
-    }
-    else if (event.type === 'mousemove' && this.isMouseDown) {
+    if (event.type === 'mousemove') {
+      // Handle mouse movement for camera rotation
       const deltaX = event.clientX - this.mouseX;
       const deltaY = event.clientY - this.mouseY;
       this.mouseX = event.clientX;
       this.mouseY = event.clientY;
       
-      if (this.onMouseMove) {
-        this.onMouseMove(deltaX * this.mouseSensitivity, deltaY * this.mouseSensitivity);
+      // Only apply mouse movement if enabled or if right mouse button is pressed
+      if (this.mouseControlEnabled || this.rightMouseDown) {
+        if (this.onMouseMove) {
+          this.onMouseMove(deltaX * this.mouseSensitivity, deltaY * this.mouseSensitivity);
+        }
       }
+    }
+    else if (event.type === 'mousedown' && event.button === 2) {
+      // Right mouse button down - alternative camera control mode
+      this.rightMouseDown = true;
+      this.mouseX = event.clientX;
+      this.mouseY = event.clientY;
+    }
+    else if (event.type === 'mouseup' && event.button === 2) {
+      // Right mouse button up
+      this.rightMouseDown = false;
     }
   }
   
@@ -196,5 +203,10 @@ export class Controller {
 
   setMouseMoveCallback(callback) {
     this.onMouseMove = callback;
+  }
+  
+  // New method to check if mouse control is enabled
+  isMouseControlEnabled() {
+    return this.mouseControlEnabled;
   }
 }

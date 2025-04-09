@@ -64,6 +64,20 @@ statusElement.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
 statusElement.style.borderRadius = '5px';
 document.body.appendChild(statusElement);
 
+// Mouse control status element
+const mouseControlStatusElement = document.createElement('div');
+mouseControlStatusElement.style.position = 'absolute';
+mouseControlStatusElement.style.top = '50px';
+mouseControlStatusElement.style.left = '20px';
+mouseControlStatusElement.style.color = 'white';
+mouseControlStatusElement.style.fontSize = '14px';
+mouseControlStatusElement.style.fontFamily = 'Arial, sans-serif';
+mouseControlStatusElement.style.padding = '5px';
+mouseControlStatusElement.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+mouseControlStatusElement.style.borderRadius = '5px';
+mouseControlStatusElement.textContent = 'Mouse camera control: ON (press M to toggle)';
+document.body.appendChild(mouseControlStatusElement);
+
 // Victory message
 const victoryElement = document.createElement('div');
 victoryElement.style.position = 'absolute';
@@ -265,6 +279,11 @@ function updateStatusDisplay() {
     statusElement.innerHTML = gameState.escaped 
         ? `Escaped in ${gameState.escapeTime.toFixed(2)} seconds!` 
         : `Time: ${elapsedTime.toFixed(1)} seconds`;
+    
+    // Update mouse control status text
+    if (mouseControlStatusElement) {
+        mouseControlStatusElement.textContent = `Mouse camera control: ${controller.isMouseControlEnabled() ? 'ON' : 'OFF'} (press M to toggle)`;
+    }
 }
 
 // Animate loop
