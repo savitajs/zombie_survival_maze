@@ -67,15 +67,23 @@ export class Player extends Character {
     }
     
     if (bounds.gameMap) {
-        // Calculate next position
-        const nextPosition = this.location.clone().addScaledVector(this.velocity, deltaTime);
+        // Store current position before moving
+        const currentPosition = this.location.clone();
         
-        // Player radius (half of the cone's base size)
-        const radius = 0.75;
+        // Calculate next position based on velocity
+        const nextPosition = currentPosition.clone().addScaledVector(this.velocity, deltaTime);
         
-        // Check collision points around the player
+        // Player collision radius (half of the cone's base size)
+        const radius = 1.0; // Slightly larger than before for better collision detection
+        
+        // Create multiple collision check points around the player (8 points on the perimeter plus center)
         const collisionPoints = [];
         const segments = 8;
+        
+        // Center point
+        collisionPoints.push({ x: nextPosition.x, z: nextPosition.z });
+        
+        // Points around the perimeter
         for (let i = 0; i < segments; i++) {
             const angle = (i / segments) * Math.PI * 2;
             collisionPoints.push({
@@ -84,63 +92,72 @@ export class Player extends Character {
             });
         }
         
-        // Check if any collision point would be in a wall
+        // Check if any collision point would hit a wall
         let collision = false;
+        
         for (const point of collisionPoints) {
-            if (bounds.gameMap.isWall(Math.floor(point.x), Math.floor(point.z))) {
+            if (bounds.gameMap.isWall(point.x, point.z)) {
                 collision = true;
                 break;
             }
         }
         
         if (collision) {
-            // If collision detected, try to slide along walls
-            const normalizedVelocity = this.velocity.clone().normalize();
-            const slideDirections = [
-                { x: normalizedVelocity.x, z: 0 },  // Slide horizontally
-                { x: 0, z: normalizedVelocity.z }   // Slide vertically
-            ];
+            // Try sliding along walls by separating X and Z movements
+            // Try X movement only
+            const xOnlyPosition = currentPosition.clone();
+            xOnlyPosition.x += this.velocity.x * deltaTime;
             
-            let canSlide = false;
-            for (const direction of slideDirections) {
-                // Try sliding in this direction
-                const slidePosition = this.location.clone();
-                slidePosition.x += direction.x * this.velocity.length() * deltaTime;
-                slidePosition.z += direction.z * this.velocity.length() * deltaTime;
-                
-                // Check if sliding would cause collision
-                let slideCollision = false;
-                for (let i = 0; i < segments; i++) {
-                    const angle = (i / segments) * Math.PI * 2;
-                    const point = {
-                        x: slidePosition.x + Math.cos(angle) * radius,
-                        z: slidePosition.z + Math.sin(angle) * radius
-                    };
-                    if (bounds.gameMap.isWall(Math.floor(point.x), Math.floor(point.z))) {
-                        slideCollision = true;
-                        break;
-                    }
-                }
-                
-                if (!slideCollision) {
-                    // We can slide in this direction
-                    this.velocity.x = this.velocity.length() * direction.x;
-                    this.velocity.z = this.velocity.length() * direction.z;
-                    nextPosition.copy(slidePosition);
-                    canSlide = true;
+            // Check if X movement alone causes collision
+            let xCollision = false;
+            for (let i = 0; i < segments; i++) {
+                const angle = (i / segments) * Math.PI * 2;
+                const point = {
+                    x: xOnlyPosition.x + Math.cos(angle) * radius,
+                    z: xOnlyPosition.z + Math.sin(angle) * radius
+                };
+                if (bounds.gameMap.isWall(point.x, point.z)) {
+                    xCollision = true;
                     break;
                 }
             }
             
-            if (!canSlide) {
-                // Can't slide, stop movement
-                this.velocity.setLength(0);
-                return;
+            // Try Z movement only
+            const zOnlyPosition = currentPosition.clone();
+            zOnlyPosition.z += this.velocity.z * deltaTime;
+            
+            // Check if Z movement alone causes collision
+            let zCollision = false;
+            for (let i = 0; i < segments; i++) {
+                const angle = (i / segments) * Math.PI * 2;
+                const point = {
+                    x: zOnlyPosition.x + Math.cos(angle) * radius,
+                    z: zOnlyPosition.z + Math.sin(angle) * radius
+                };
+                if (bounds.gameMap.isWall(point.x, point.z)) {
+                    zCollision = true;
+                    break;
+                }
             }
+            
+            // Update position based on what's possible
+            if (!xCollision) {
+                this.location.x = xOnlyPosition.x;
+            }
+            
+            if (!zCollision) {
+                this.location.z = zOnlyPosition.z;
+            }
+            
+            // If both directions cause collisions, we can't move
+            if (xCollision && zCollision) {
+                // Bounce back slightly
+                this.velocity.multiplyScalar(-0.1);
+            }
+        } else {
+            // No collision, so we can update the position normally
+            this.location.copy(nextPosition);
         }
-        
-        // Update position if no collision or after successful slide
-        this.location.copy(nextPosition);
     }
     
     this.checkBounds(bounds);

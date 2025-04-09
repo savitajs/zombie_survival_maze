@@ -156,14 +156,50 @@ export class GameMap {
 
   // Check if a world position is valid (not a wall)
   isWall(x, z) {
+    // Convert world coordinates to tile coordinates
     const nodeI = Math.floor((x - this.bounds.min.x) / this.tileSize);
     const nodeJ = Math.floor((z - this.bounds.min.z) / this.tileSize);
     
+    // Check if out of bounds
     if (nodeI < 0 || nodeI >= this.cols || nodeJ < 0 || nodeJ >= this.rows) {
       return true; // Out of bounds is considered a wall
     }
     
+    // Get the node at these coordinates
     const node = this.mapGraph.getAt(nodeI, nodeJ);
-    return !node || node.edges.length === 0;
+    if (!node) return true; // No node means it's a wall
+    
+    // Position within the current tile
+    const localX = ((x - this.bounds.min.x) % this.tileSize + this.tileSize) % this.tileSize;
+    const localZ = ((z - this.bounds.min.z) % this.tileSize + this.tileSize) % this.tileSize;
+    
+    // Wall thickness (as fraction of tile size)
+    const wallThickness = this.tileSize * 0.1;
+    const thresholdFromWall = wallThickness * 1.1; // Slightly larger to prevent clipping
+    
+    // Check proximity to cell borders with no adjacent node
+    
+    // Check west wall (left edge)
+    if (localX < thresholdFromWall && !node.hasEdgeTo(nodeI - 1, nodeJ)) {
+      return true;
+    }
+    
+    // Check east wall (right edge)
+    if (localX > this.tileSize - thresholdFromWall && !node.hasEdgeTo(nodeI + 1, nodeJ)) {
+      return true;
+    }
+    
+    // Check north wall (top edge)
+    if (localZ < thresholdFromWall && !node.hasEdgeTo(nodeI, nodeJ - 1)) {
+      return true;
+    }
+    
+    // Check south wall (bottom edge)
+    if (localZ > this.tileSize - thresholdFromWall && !node.hasEdgeTo(nodeI, nodeJ + 1)) {
+      return true;
+    }
+    
+    // Not a wall
+    return false;
   }
 }
