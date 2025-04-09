@@ -1,8 +1,12 @@
 import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Player } from './Behaviour/Player.js';
 import { Controller } from './Behaviour/Controller.js';
 import { GameMap } from './World/GameMap.js';
 import { ZombieManager } from './Entities/ZombieManager.js';
+import { HealthBar } from './UI/HealthBar.js';
+import { HealthPackManager } from './Entities/HealthPackManager.js';
+import { HealthPack } from './Entities/HealthPack.js';  // Add this import
 
 // Create Scene
 const scene = new THREE.Scene();
@@ -40,6 +44,10 @@ let player;
 
 // Declare ZombieManager
 let zombieManager;
+
+// Declare HealthBar and HealthPackManager
+let healthBar;
+let healthPackManager;
 
 // Game state
 let gameState = {
@@ -182,6 +190,9 @@ function loadLevel(levelNumber) {
     // Create zombie manager
     zombieManager = new ZombieManager(scene, gameMap);
     
+    // Initialize health pack manager
+    healthPackManager = new HealthPackManager(scene, gameMap);
+    
     // Reset game state
     gameState.escaped = false;
     gameState.startTime = Date.now();
@@ -277,9 +288,9 @@ function getRandomMazePosition(gameMap) {
             console.log('Found valid position:', x, z);
             // Return position with slight offset to center of cell
             return new THREE.Vector3(
-                x + 0.5, // Center of the cell X
-                20,      // Ground level
-                z + 0.5 // Center of the cell Z
+                x + 0.5,
+                20,      // Height is also set to 20 units here
+                z + 0.5
             );
         }
         
@@ -290,6 +301,20 @@ function getRandomMazePosition(gameMap) {
     console.warn('Could not find random position, using fallback position');
     const startNode = gameMap.mapGraph.get(0);
     return gameMap.localize(startNode);
+}
+
+// Get a random valid position in the maze
+function getRandomValidPosition(gameMap) {
+    const validNodes = gameMap.mapGraph.nodes.filter(node => 
+        !gameMap.isWall(
+            gameMap.localize(node).x,
+            gameMap.localize(node).z
+        )
+    );
+    
+    const randomNode = validNodes[Math.floor(Math.random() * validNodes.length)];
+    const worldPos = gameMap.localize(randomNode);
+    return worldPos;
 }
 
 // Setup our scene
@@ -306,10 +331,47 @@ function init() {
         }
     });
 
+    // Create our gameMap
+    gameMap = new GameMap();
+    scene.add(gameMap.gameObject);
+
+    // Initialize health bar
+    healthBar = new HealthBar(100);
+
+    // Initialize health pack manager AFTER gameMap is created
+    healthPackManager = new HealthPackManager(scene, gameMap);
+
+    // Create health packs
+    const healthPacks = [];
+    for (let i = 0; i < 3; i++) {
+        const position = getRandomValidPosition(gameMap);
+        const healthPack = new HealthPack(scene, position, i + 1);
+        healthPacks.push(healthPack);
+    }
+
     // Load the first level
     loadLevel(gameState.currentLevel);
 
     animate();
+}
+
+// Add this function to handle player damage
+function damagePlayer(amount) {
+    const currentHealth = healthBar.currentHealth;
+    healthBar.updateHealth(currentHealth - amount);
+    
+    if (healthBar.currentHealth <= 0) {
+        // Handle player death
+        console.log('Player died!');
+        // Add your game over logic here
+    }
+}
+
+// Cleanup function if needed
+function cleanup() {
+    cleanupLevel();
+    healthBar.cleanup();
+    healthPackManager.cleanup();
 }
 
 // Toggle between free camera and third person camera modes
@@ -424,6 +486,11 @@ function animate() {
         // Update zombies
         if (zombieManager) {
             zombieManager.update(deltaTime, player.location);
+        }
+        
+        // Update health packs and check for pickups
+        if (healthPackManager.update(player.location, healthBar.currentHealth, healthBar.maxHealth)) {
+            healthBar.updateHealth(healthBar.maxHealth); // Restore full health
         }
     }
     
