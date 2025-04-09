@@ -16,6 +16,17 @@ export class WhiskerDebug {
         this.scene.add(this.centerLine);
         this.scene.add(this.leftLine);
         this.scene.add(this.rightLine);
+
+        // Add detection radius visualization
+        const circleGeometry = new THREE.CircleGeometry(1, 32);
+        const circleMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xff0000,
+            transparent: true,
+            opacity: 0.2
+        });
+        this.detectionCircle = new THREE.Mesh(circleGeometry, circleMaterial);
+        this.detectionCircle.rotation.x = -Math.PI / 2; // Lay flat
+        scene.add(this.detectionCircle);
     }
 
     updateWhiskers(start, center, left, right, collisions) {
@@ -28,6 +39,11 @@ export class WhiskerDebug {
         this.centerLine.material.color.setHex(collisions.center ? 0xff0000 : 0x00ff00);
         this.leftLine.material.color.setHex(collisions.left ? 0xff0000 : 0x00ff00);
         this.rightLine.material.color.setHex(collisions.right ? 0xff0000 : 0x00ff00);
+    }
+
+    updateDetectionRadius(position, radius) {
+        this.detectionCircle.position.copy(position);
+        this.detectionCircle.scale.setScalar(radius);
     }
 
     setLinePoints(line, start, end) {
@@ -43,5 +59,6 @@ export class WhiskerDebug {
         this.scene.remove(this.centerLine);
         this.scene.remove(this.leftLine);
         this.scene.remove(this.rightLine);
+        this.scene.remove(this.detectionCircle);
     }
 }
