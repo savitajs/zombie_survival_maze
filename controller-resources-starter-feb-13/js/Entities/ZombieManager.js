@@ -281,6 +281,11 @@ export class ZombieManager {
         // Update debug displays with path distance
         this.stateDebug.updateState(stateUpdate.animation, stateUpdate.pathDistance);
         
+        // Clear path if state indicates it should be cleared
+        if (stateUpdate.clearPath) {
+            this.pathDebug.clearPath();
+        }
+
         this.setZombieAnimation(zombie, stateUpdate.animation);
 
         if (!stateUpdate.shouldMove) return;

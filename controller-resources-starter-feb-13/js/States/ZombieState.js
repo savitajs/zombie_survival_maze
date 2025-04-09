@@ -32,7 +32,8 @@ export class ZombieState {
             return { 
                 animation: 'death', 
                 shouldMove: false,
-                shouldPathFind: false 
+                shouldPathFind: false,
+                clearPath: true // Add flag to clear debug path
             };
         }
 
@@ -47,7 +48,8 @@ export class ZombieState {
                 animation: 'idle',
                 shouldMove: false,
                 shouldPathFind: false,
-                pathDistance: pathDistance
+                pathDistance: pathDistance,
+                clearPath: true // Add flag to clear debug path when returning to idle
             };
         }
 
@@ -59,7 +61,8 @@ export class ZombieState {
                 return { 
                     animation: 'death', 
                     shouldMove: false,
-                    shouldPathFind: false 
+                    shouldPathFind: false,
+                    clearPath: true // Add flag to clear debug path
                 };
             }
         }
@@ -74,7 +77,8 @@ export class ZombieState {
                     animation: 'idle', 
                     shouldMove: false,
                     shouldPathFind: false,
-                    pathDistance: pathDistance
+                    pathDistance: pathDistance,
+                    clearPath: true // Add flag to clear debug path in idle state
                 };
 
             case ZombieState.States.APPROACH:
