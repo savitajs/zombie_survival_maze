@@ -274,11 +274,12 @@ export class ZombieManager {
         const zombie = this.zombies[0];
         if (!zombie) return;
 
-        const distanceToPlayer = zombie.position.distanceTo(playerPosition);
-        const stateUpdate = zombie.state.update(playerPosition, this.playerAttacking);
+        // Get path first so we can use it for distance calculation
+        const path = this.pathFinder.findPathToTarget(zombie.position, playerPosition);
+        const stateUpdate = zombie.state.update(playerPosition, this.playerAttacking, path);
         
-        // Update debug displays
-        this.stateDebug.updateState(stateUpdate.animation, distanceToPlayer);
+        // Update debug displays with path distance
+        this.stateDebug.updateState(stateUpdate.animation, stateUpdate.pathDistance);
         
         this.setZombieAnimation(zombie, stateUpdate.animation);
 
@@ -288,7 +289,6 @@ export class ZombieManager {
 
         // Only do pathfinding if state allows it
         if (stateUpdate.shouldPathFind) {
-            const path = this.pathFinder.findPathToTarget(zombie.position, playerPosition);
             if (path) {
                 this.pathDebug.showPath(path);
                 steeringForce = this.followPath(zombie, path);

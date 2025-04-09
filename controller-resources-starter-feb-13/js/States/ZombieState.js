@@ -11,10 +11,23 @@ export class ZombieState {
         this.currentState = ZombieState.States.IDLE;
         this.hitPoints = 5; // Takes 5 hits to kill
         this.attackRange = 5;
-        this.detectionRange = 50;
+        this.detectionRange = 300;
+        this.maxChaseDistance = 200; // Maximum distance before returning to idle
     }
 
-    update(playerPosition, playerAttacking) {
+    getPathDistance(path) {
+        if (!path || path.length < 2) return Infinity;
+
+        let totalDistance = 0;
+        for (let i = 0; i < path.length - 1; i++) {
+            const current = path[i];
+            const next = path[i + 1];
+            totalDistance += current.distanceTo(next);
+        }
+        return totalDistance;
+    }
+
+    update(playerPosition, playerAttacking, currentPath) {
         if (this.currentState === ZombieState.States.DEATH) {
             return { 
                 animation: 'death', 
@@ -23,14 +36,23 @@ export class ZombieState {
             };
         }
 
-        // Calculate direct Euclidean distance ignoring y-axis
-        const distanceToPlayer = Math.sqrt(
-            Math.pow(this.zombie.position.x - playerPosition.x, 2) + 
-            Math.pow(this.zombie.position.z - playerPosition.z, 2)
-        );
+        // Use path distance instead of direct distance
+        const pathDistance = this.getPathDistance(currentPath);
+        
+        // Return to idle if path distance exceeds maximum chase distance
+        if (pathDistance > this.maxChaseDistance && 
+            this.currentState === ZombieState.States.APPROACH) {
+            this.currentState = ZombieState.States.IDLE;
+            return {
+                animation: 'idle',
+                shouldMove: false,
+                shouldPathFind: false,
+                pathDistance: pathDistance
+            };
+        }
 
         // Handle player attack
-        if (playerAttacking && distanceToPlayer <= this.attackRange) {
+        if (playerAttacking && pathDistance <= this.attackRange) {
             this.hitPoints--;
             if (this.hitPoints <= 0) {
                 this.currentState = ZombieState.States.DEATH;
@@ -45,38 +67,42 @@ export class ZombieState {
         // State transitions
         switch (this.currentState) {
             case ZombieState.States.IDLE:
-                if (distanceToPlayer <= this.detectionRange) {
+                if (pathDistance <= this.detectionRange) {
                     this.currentState = ZombieState.States.APPROACH;
                 }
                 return { 
                     animation: 'idle', 
                     shouldMove: false,
-                    shouldPathFind: false 
+                    shouldPathFind: false,
+                    pathDistance: pathDistance
                 };
 
             case ZombieState.States.APPROACH:
-                if (distanceToPlayer <= this.attackRange) {
+                if (pathDistance <= this.attackRange) {
                     this.currentState = ZombieState.States.ATTACK;
                 }
                 return { 
                     animation: 'walk', 
                     shouldMove: true,
-                    shouldPathFind: true  // Enable pathfinding during approach
+                    shouldPathFind: true,
+                    pathDistance: pathDistance
                 };
 
             case ZombieState.States.ATTACK:
-                if (distanceToPlayer > this.attackRange) {
+                if (pathDistance > this.attackRange) {
                     this.currentState = ZombieState.States.APPROACH;
                     return { 
                         animation: 'walk', 
                         shouldMove: true,
-                        shouldPathFind: true 
+                        shouldPathFind: true,
+                        pathDistance: pathDistance
                     };
                 }
                 return { 
                     animation: 'attack', 
                     shouldMove: false,
-                    shouldPathFind: false 
+                    shouldPathFind: false,
+                    pathDistance: pathDistance
                 };
         }
     }

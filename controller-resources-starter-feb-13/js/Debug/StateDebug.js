@@ -19,7 +19,7 @@ export class StateDebug {
         document.body.appendChild(this.stateText);
     }
 
-    updateState(state, distanceToPlayer) {
+    updateState(state, pathDistance) {
         let stateColor;
         switch(state) {
             case 'idle':
@@ -40,7 +40,7 @@ export class StateDebug {
 
         this.stateText.innerHTML = `
             Zombie State: <span style="color:${stateColor}">${state}</span><br>
-            Distance to Player: ${Math.round(distanceToPlayer * 10) / 10} units
+            Path Distance: ${Math.round(pathDistance * 10) / 10} units
         `;
     }
 
