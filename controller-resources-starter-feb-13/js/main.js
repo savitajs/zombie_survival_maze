@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { Player } from './Behaviour/Player.js';
 import { Controller } from './Behaviour/Controller.js';
 import { GameMap } from './World/GameMap.js';
+import { ZombieManager } from './Entities/ZombieManager.js';
 
 // Create Scene
 const scene = new THREE.Scene();
@@ -17,6 +18,9 @@ const controller = new Controller(document, camera);
 // Declare our GameMap and Player
 let gameMap;
 let player;
+
+// Declare ZombieManager
+let zombieManager;
 
 // Camera parameters - adjusted for larger maze
 const THIRD_PERSON_DISTANCE = 5; // Adjusted distance for clear view of cone's base
@@ -123,6 +127,9 @@ function init() {
         }
     });
 
+    // Add zombie manager
+    zombieManager = new ZombieManager(scene, gameMap);
+
     animate();
 }
 
@@ -183,6 +190,11 @@ function updateCamera(deltaTime) {
     camera.lookAt(lookAtTarget);
 }
 
+// Update zombies
+function updateZombies(deltaTime) {
+    zombieManager.update(deltaTime, player.location);
+}
+
 // Animate loop
 function animate() {
     requestAnimationFrame(animate);
@@ -204,6 +216,9 @@ function animate() {
             controller.toggleCameraMode = false;
         }
     }
+    
+    // Update zombies
+    updateZombies(deltaTime);
     
     // Update camera
     updateCamera(deltaTime);

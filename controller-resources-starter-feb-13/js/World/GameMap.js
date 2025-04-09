@@ -5,7 +5,6 @@ import { MapNode } from './MapNode.js';
 import { MapRenderer } from './MapRenderer.js';
 import { MazeGenerator } from './MazeGenerator.js';
 
-
 export class GameMap {
 
   // Constructor for our GameMap class
@@ -44,7 +43,6 @@ export class GameMap {
 
     // Create our game object
     this.gameObject = this.mapRenderer.createRendering();
-
   }
 
   // Method to get from node to world location
