@@ -22,6 +22,14 @@ let player;
 // Declare ZombieManager
 let zombieManager;
 
+// Game state
+let gameState = {
+  escaped: false,
+  gameOver: false,
+  startTime: 0,
+  escapeTime: 0
+};
+
 // Camera parameters - adjusted for larger maze
 const THIRD_PERSON_DISTANCE = 5; // Adjusted distance for clear view of cone's base
 const THIRD_PERSON_HEIGHT = 3;   // Lower height to better see the cone's base
@@ -42,6 +50,35 @@ const freeCameraTarget = new THREE.Vector3(0, 0, 0);
 
 // Raycaster for wall detection
 const raycaster = new THREE.Raycaster();
+
+// UI elements for game status
+const statusElement = document.createElement('div');
+statusElement.style.position = 'absolute';
+statusElement.style.top = '20px';
+statusElement.style.left = '20px';
+statusElement.style.color = 'white';
+statusElement.style.fontSize = '18px';
+statusElement.style.fontFamily = 'Arial, sans-serif';
+statusElement.style.padding = '10px';
+statusElement.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+statusElement.style.borderRadius = '5px';
+document.body.appendChild(statusElement);
+
+// Victory message
+const victoryElement = document.createElement('div');
+victoryElement.style.position = 'absolute';
+victoryElement.style.top = '50%';
+victoryElement.style.left = '50%';
+victoryElement.style.transform = 'translate(-50%, -50%)';
+victoryElement.style.color = 'white';
+victoryElement.style.fontSize = '36px';
+victoryElement.style.fontFamily = 'Arial, sans-serif';
+victoryElement.style.textAlign = 'center';
+victoryElement.style.padding = '20px';
+victoryElement.style.backgroundColor = 'rgba(0, 100, 0, 0.8)';
+victoryElement.style.borderRadius = '10px';
+victoryElement.style.display = 'none';
+document.body.appendChild(victoryElement);
 
 // Prevent context menu on right-click
 document.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -129,6 +166,9 @@ function init() {
 
     // Add zombie manager
     zombieManager = new ZombieManager(scene, gameMap);
+    
+    // Record game start time
+    gameState.startTime = Date.now();
 
     animate();
 }
@@ -192,7 +232,39 @@ function updateCamera(deltaTime) {
 
 // Update zombies
 function updateZombies(deltaTime) {
-    zombieManager.update(deltaTime, player.location);
+    if (zombieManager && !gameState.gameOver) {
+        zombieManager.update(deltaTime, player.location);
+    }
+}
+
+// Check if player reached the exit
+function checkExitReached() {
+    if (gameMap.isAtExit(player.location.x, player.location.z) && !gameState.escaped) {
+        gameState.escaped = true;
+        gameState.escapeTime = (Date.now() - gameState.startTime) / 1000; // in seconds
+        showVictoryMessage();
+    }
+}
+
+// Show victory message
+function showVictoryMessage() {
+    victoryElement.innerHTML = `
+        <h2>Escaped!</h2>
+        <p>You escaped the maze in ${gameState.escapeTime.toFixed(2)} seconds!</p>
+        <p>Press F5 to play again</p>
+    `;
+    victoryElement.style.display = 'block';
+    
+    // Optionally slow down time or pause the game
+    player.velocity.multiplyScalar(0);
+}
+
+// Update game status display
+function updateStatusDisplay() {
+    const elapsedTime = (Date.now() - gameState.startTime) / 1000;
+    statusElement.innerHTML = gameState.escaped 
+        ? `Escaped in ${gameState.escapeTime.toFixed(2)} seconds!` 
+        : `Time: ${elapsedTime.toFixed(1)} seconds`;
 }
 
 // Animate loop
@@ -202,7 +274,7 @@ function animate() {
     const deltaTime = clock.getDelta();
     
     // Update player using the controller - now using force-based movement
-    if (player && controller) {
+    if (player && controller && !gameState.gameOver) {
         player.update(deltaTime, { ...gameMap.bounds, gameMap }, controller);
         
         // Update free camera controls if needed
@@ -215,6 +287,9 @@ function animate() {
             toggleFreeCamera();
             controller.toggleCameraMode = false;
         }
+        
+        // Check if player reached the exit
+        checkExitReached();
     }
     
     // Update zombies
@@ -223,7 +298,25 @@ function animate() {
     // Update camera
     updateCamera(deltaTime);
     
+    // Update status display
+    updateStatusDisplay();
+    
+    // Animate exit wall pulsing effect if it exists
+    animateExitWall(deltaTime);
+    
     renderer.render(scene, camera);
+}
+
+// Animate the exit wall to make it more noticeable
+function animateExitWall(deltaTime) {
+    if (gameMap && gameMap.gameObject) {
+        // Find the exit wall mesh by checking userData
+        gameMap.gameObject.traverse((child) => {
+            if (child.userData && child.userData.animate && typeof child.userData.animate === 'function') {
+                child.userData.animate(deltaTime);
+            }
+        });
+    }
 }
 
 init();

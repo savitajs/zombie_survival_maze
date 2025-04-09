@@ -202,4 +202,42 @@ export class GameMap {
     // Not a wall
     return false;
   }
+
+  // Check if a position is at the exit
+  isAtExit(x, z) {
+    // If we don't have an exit wall defined, return false
+    if (!this.exitWall) return false;
+    
+    // Get the node containing the exit
+    const exitNode = this.mapGraph.getAt(this.exitWall.i, this.exitWall.j);
+    if (!exitNode) return false;
+    
+    // Get the position of the exit node
+    const exitPos = this.localize(exitNode);
+    
+    // Calculate distance from the position to the exit
+    const dist = Math.sqrt(
+      Math.pow(x - exitPos.x, 2) + 
+      Math.pow(z - exitPos.z, 2)
+    );
+    
+    // Check if we're close enough to the exit (using a threshold based on tile size)
+    const threshold = this.tileSize * 0.6;
+    
+    // Also check that we're on the correct side of the exit wall
+    // For east exit, check if x is greater than exit position x
+    let correctSide = false;
+    
+    if (this.exitWall.side === 'east') {
+      correctSide = x > exitPos.x;
+    } else if (this.exitWall.side === 'west') {
+      correctSide = x < exitPos.x;
+    } else if (this.exitWall.side === 'north') {
+      correctSide = z < exitPos.z;
+    } else if (this.exitWall.side === 'south') {
+      correctSide = z > exitPos.z;
+    }
+    
+    return dist < threshold && correctSide;
+  }
 }
