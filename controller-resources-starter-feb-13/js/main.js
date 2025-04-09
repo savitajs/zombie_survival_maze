@@ -8,6 +8,25 @@ import { ZombieManager } from './Entities/ZombieManager.js';
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer();
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+// Create lighting
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+scene.add(ambientLight);
+
+const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+directionalLight.position.set(100, 200, 100);
+directionalLight.castShadow = true;
+directionalLight.shadow.mapSize.width = 1024;
+directionalLight.shadow.mapSize.height = 1024;
+directionalLight.shadow.camera.near = 10;
+directionalLight.shadow.camera.far = 500;
+directionalLight.shadow.camera.left = -200;
+directionalLight.shadow.camera.right = 200;
+directionalLight.shadow.camera.top = 200;
+directionalLight.shadow.camera.bottom = -200;
+scene.add(directionalLight);
 
 // Create clock
 const clock = new THREE.Clock();
@@ -24,10 +43,15 @@ let zombieManager;
 
 // Game state
 let gameState = {
-  escaped: false,
-  gameOver: false,
-  startTime: 0,
-  escapeTime: 0
+    currentLevel: 1,
+    maxLevel: 3,
+    escaped: false,
+    gameOver: false,
+    startTime: 0,
+    escapeTime: 0,
+    transitioning: false,
+    transitionTimer: 0,
+    transitionDuration: 10 // 10 seconds between levels
 };
 
 // Camera parameters - adjusted for larger maze
@@ -64,10 +88,23 @@ statusElement.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
 statusElement.style.borderRadius = '5px';
 document.body.appendChild(statusElement);
 
+// Level display element
+const levelElement = document.createElement('div');
+levelElement.style.position = 'absolute';
+levelElement.style.top = '60px';
+levelElement.style.left = '20px';
+levelElement.style.color = 'white';
+levelElement.style.fontSize = '18px';
+levelElement.style.fontFamily = 'Arial, sans-serif';
+levelElement.style.padding = '10px';
+levelElement.style.backgroundColor = 'rgba(223, 161, 161, 0.5)';
+levelElement.style.borderRadius = '5px';
+document.body.appendChild(levelElement);
+
 // Mouse control status element
 const mouseControlStatusElement = document.createElement('div');
 mouseControlStatusElement.style.position = 'absolute';
-mouseControlStatusElement.style.top = '50px';
+mouseControlStatusElement.style.top = '100px';
 mouseControlStatusElement.style.left = '20px';
 mouseControlStatusElement.style.color = 'white';
 mouseControlStatusElement.style.fontSize = '14px';
@@ -78,21 +115,21 @@ mouseControlStatusElement.style.borderRadius = '5px';
 mouseControlStatusElement.textContent = 'Mouse camera control: ON (press M to toggle)';
 document.body.appendChild(mouseControlStatusElement);
 
-// Victory message
-const victoryElement = document.createElement('div');
-victoryElement.style.position = 'absolute';
-victoryElement.style.top = '50%';
-victoryElement.style.left = '50%';
-victoryElement.style.transform = 'translate(-50%, -50%)';
-victoryElement.style.color = 'white';
-victoryElement.style.fontSize = '36px';
-victoryElement.style.fontFamily = 'Arial, sans-serif';
-victoryElement.style.textAlign = 'center';
-victoryElement.style.padding = '20px';
-victoryElement.style.backgroundColor = 'rgba(0, 100, 0, 0.8)';
-victoryElement.style.borderRadius = '10px';
-victoryElement.style.display = 'none';
-document.body.appendChild(victoryElement);
+// Victory/transition message
+const messageElement = document.createElement('div');
+messageElement.style.position = 'absolute';
+messageElement.style.top = '50%';
+messageElement.style.left = '50%';
+messageElement.style.transform = 'translate(-50%, -50%)';
+messageElement.style.color = 'white';
+messageElement.style.fontSize = '36px';
+messageElement.style.fontFamily = 'Arial, sans-serif';
+messageElement.style.textAlign = 'center';
+messageElement.style.padding = '20px';
+messageElement.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+messageElement.style.borderRadius = '10px';
+messageElement.style.display = 'none';
+document.body.appendChild(messageElement);
 
 // Prevent context menu on right-click
 document.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -104,6 +141,121 @@ function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// Cleanup current level objects
+function cleanupLevel() {
+    // Remove existing map
+    if (gameMap && gameMap.gameObject) {
+        scene.remove(gameMap.gameObject);
+    }
+    
+    // Remove existing player
+    if (player && player.gameObject) {
+        scene.remove(player.gameObject);
+    }
+    
+    // Cleanup zombie manager
+    if (zombieManager) {
+        zombieManager.cleanup();
+    }
+}
+
+// Load a specific level
+function loadLevel(levelNumber) {
+    console.log(`Loading level ${levelNumber}`);
+    
+    // Clean up existing level objects
+    cleanupLevel();
+    
+    // Create new map with specified level
+    gameMap = new GameMap(levelNumber);
+    scene.add(gameMap.gameObject);
+    
+    // Create player
+    player = new Player(new THREE.Color(0x00ff00));
+    const startPos = getRandomMazePosition(gameMap);
+    console.log('Start Position:', startPos);
+    player.location.copy(startPos);
+    scene.add(player.gameObject);
+    
+    // Create zombie manager
+    zombieManager = new ZombieManager(scene, gameMap);
+    
+    // Reset game state
+    gameState.escaped = false;
+    gameState.startTime = Date.now();
+    gameState.escapeTime = 0;
+    gameState.transitioning = false;
+    
+    // Update level display
+    updateLevelDisplay();
+}
+
+// Transition to the next level
+function startNextLevelTransition() {
+    if (gameState.currentLevel < gameState.maxLevel) {
+        // Start transition to next level
+        gameState.transitioning = true;
+        gameState.transitionTimer = gameState.transitionDuration;
+        
+        // Show transition message
+        showTransitionMessage(gameState.currentLevel + 1, gameState.transitionTimer);
+    } else {
+        // Show game complete message
+        showGameCompleteMessage();
+    }
+}
+
+// Show transition message
+function showTransitionMessage(nextLevel, seconds) {
+    messageElement.innerHTML = `
+        <h2>Level ${gameState.currentLevel} Complete!</h2>
+        <p>Playing Level ${nextLevel} in ${seconds} seconds...</p>
+    `;
+    messageElement.style.backgroundColor = 'rgba(0, 100, 0, 0.8)';
+    messageElement.style.display = 'block';
+}
+
+// Update the transition timer
+function updateTransition(deltaTime) {
+    if (!gameState.transitioning) return;
+    
+    gameState.transitionTimer -= deltaTime;
+    
+    // Update transition message with countdown
+    const secondsRemaining = Math.ceil(gameState.transitionTimer);
+    if (gameState.currentLevel < gameState.maxLevel) {
+        showTransitionMessage(gameState.currentLevel + 1, secondsRemaining);
+    }
+    
+    // When timer reaches zero, load next level
+    if (gameState.transitionTimer <= 0) {
+        gameState.transitioning = false;
+        messageElement.style.display = 'none';
+        
+        if (gameState.currentLevel < gameState.maxLevel) {
+            gameState.currentLevel++;
+            loadLevel(gameState.currentLevel);
+        }
+    }
+}
+
+// Show game complete message
+function showGameCompleteMessage() {
+    messageElement.innerHTML = `
+        <h2>Congratulations!</h2>
+        <p>You've completed all ${gameState.maxLevel} levels!</p>
+        <p>Press F5 to play again</p>
+    `;
+    messageElement.style.backgroundColor = 'rgba(0, 100, 0, 0.8)';
+    messageElement.style.display = 'block';
+    gameState.gameOver = true;
+}
+
+// Update level display
+function updateLevelDisplay() {
+    levelElement.textContent = `Level: ${gameState.currentLevel} / ${gameState.maxLevel}`;
 }
 
 // Find a valid starting position in the maze
@@ -130,8 +282,6 @@ function getRandomMazePosition(gameMap) {
                 z + 0.5 // Center of the cell Z
             );
         }
-
-        console.log('Invalid position:', x, z);
         
         attempts++;
     }
@@ -149,28 +299,6 @@ function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    // Create map
-    gameMap = new GameMap();
-    scene.add(gameMap.gameObject);
-
-    // Create player
-    player = new Player(new THREE.Color(0x00ff00));
-    const startPos = getRandomMazePosition(gameMap);
-    console.log('Start Position:', startPos);
-    player.location.copy(startPos);
-    scene.add(player.gameObject);
-
-    // Basic lighting
-    const ambient = new THREE.AmbientLight(0xffffff, 1);
-    scene.add(ambient);
-
-    const directional = new THREE.DirectionalLight(0xffffff, 0.5);
-    directional.position.set(0, 10, 0);
-    scene.add(directional);
-
-    // Set up initial camera position behind player
-    updateCamera(0);
-
     // Set up mouse control callback
     controller.setMouseMoveCallback((deltaX, deltaY) => {
         if (cameraMode === 'third-person') {
@@ -178,38 +306,34 @@ function init() {
         }
     });
 
-    // Add zombie manager
-    zombieManager = new ZombieManager(scene, gameMap);
-    
-    // Record game start time
-    gameState.startTime = Date.now();
+    // Load the first level
+    loadLevel(gameState.currentLevel);
 
     animate();
 }
 
-// Check if camera would hit a wall in the given direction
-function wouldHitWall(direction, distance) {
-    return gameMap.isWallNearby(player.location, direction, distance);
-}
-
-// Toggle free camera mode
+// Toggle between free camera and third person camera modes
 function toggleFreeCamera() {
-    if (cameraMode !== 'free') {
-        // Store the current camera mode before switching to free mode
+    if (cameraMode === 'free') {
+        // Switch back to previous camera mode
+        cameraMode = previousCameraMode;
+    } else {
+        // Store current mode and switch to free camera
         previousCameraMode = cameraMode;
         cameraMode = 'free';
         
-        // Set up free camera initial position
+        // Position free camera above player
         freeCameraPosition.set(
-            player.location.x, 
+            player.location.x,
             FREE_CAMERA_HEIGHT,
             player.location.z
         );
+        
+        // Target player position
         freeCameraTarget.copy(player.location);
-    } else {
-        // Return to previous camera mode
-        cameraMode = previousCameraMode;
     }
+    
+    console.log('Camera mode:', cameraMode);
 }
 
 // Update camera position based on current mode
@@ -244,33 +368,15 @@ function updateCamera(deltaTime) {
     camera.lookAt(lookAtTarget);
 }
 
-// Update zombies
-function updateZombies(deltaTime) {
-    if (zombieManager && !gameState.gameOver) {
-        zombieManager.update(deltaTime, player.location);
-    }
-}
-
 // Check if player reached the exit
 function checkExitReached() {
-    if (gameMap.isAtExit(player.location.x, player.location.z) && !gameState.escaped) {
+    if (gameMap.isAtExit(player.location.x, player.location.z) && !gameState.escaped && !gameState.transitioning) {
         gameState.escaped = true;
         gameState.escapeTime = (Date.now() - gameState.startTime) / 1000; // in seconds
-        showVictoryMessage();
+        
+        // Display victory message and begin next level transition
+        startNextLevelTransition();
     }
-}
-
-// Show victory message
-function showVictoryMessage() {
-    victoryElement.innerHTML = `
-        <h2>Escaped!</h2>
-        <p>You escaped the maze in ${gameState.escapeTime.toFixed(2)} seconds!</p>
-        <p>Press F5 to play again</p>
-    `;
-    victoryElement.style.display = 'block';
-    
-    // Optionally slow down time or pause the game
-    player.velocity.multiplyScalar(0);
 }
 
 // Update game status display
@@ -292,8 +398,13 @@ function animate() {
     
     const deltaTime = clock.getDelta();
     
+    // Handle level transitions
+    if (gameState.transitioning) {
+        updateTransition(deltaTime);
+    }
+    
     // Update player using the controller - now using force-based movement
-    if (player && controller && !gameState.gameOver) {
+    if (player && controller && !gameState.gameOver && !gameState.transitioning) {
         player.update(deltaTime, { ...gameMap.bounds, gameMap }, controller);
         
         // Update free camera controls if needed
@@ -309,10 +420,12 @@ function animate() {
         
         // Check if player reached the exit
         checkExitReached();
+        
+        // Update zombies
+        if (zombieManager) {
+            zombieManager.update(deltaTime, player.location);
+        }
     }
-    
-    // Update zombies
-    updateZombies(deltaTime);
     
     // Update camera
     updateCamera(deltaTime);

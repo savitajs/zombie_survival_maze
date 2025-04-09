@@ -16,6 +16,9 @@ export class ZombieManager {
         this.lastPositionLog = Date.now(); // Add timer for position logging
         this.positionLogInterval = 20000; // 20 seconds in milliseconds
 
+        // Store the required zombie count for this level
+        this.zombieCount = gameMap.getZombieCount();
+
         // Add movement configuration
         this.movementConfig = {
             speed: 5.0,           // Base movement speed
@@ -99,8 +102,11 @@ export class ZombieManager {
     }
 
     spawnInitialZombies() {
-        // Only spawn one zombie for testing
-        this.spawnZombie();
+        console.log(`Spawning ${this.zombieCount} zombies for level ${this.gameMap.level}`);
+        // Spawn the required number of zombies for this level
+        for (let i = 0; i < this.zombieCount; i++) {
+            this.spawnZombie();
+        }
     }
 
     spawnZombie() {
@@ -271,78 +277,84 @@ export class ZombieManager {
         // Update animation mixers
         this.mixers.forEach(mixer => mixer.update(deltaTime));
 
-        const zombie = this.zombies[0];
-        if (!zombie) return;
+        // Update all zombies
+        this.zombies.forEach(zombie => {
+            // Get path first so we can use it for distance calculation
+            const path = this.pathFinder.findPathToTarget(zombie.position, playerPosition);
+            const stateUpdate = zombie.state.update(playerPosition, this.playerAttacking, path);
+            
+            // Update debug displays with path distance - only for the first zombie
+            if (zombie === this.zombies[0]) {
+                this.stateDebug.updateState(stateUpdate.animation, stateUpdate.pathDistance);
+                
+                // Clear path if state indicates it should be cleared
+                if (stateUpdate.clearPath) {
+                    this.pathDebug.clearPath();
+                }
+                
+                // Only show path for the first zombie to avoid visual clutter
+                if (stateUpdate.shouldPathFind && path) {
+                    this.pathDebug.showPath(path);
+                }
+            }
 
-        // Get path first so we can use it for distance calculation
-        const path = this.pathFinder.findPathToTarget(zombie.position, playerPosition);
-        const stateUpdate = zombie.state.update(playerPosition, this.playerAttacking, path);
-        
-        // Update debug displays with path distance
-        this.stateDebug.updateState(stateUpdate.animation, stateUpdate.pathDistance);
-        
-        // Clear path if state indicates it should be cleared
-        if (stateUpdate.clearPath) {
-            this.pathDebug.clearPath();
-        }
+            this.setZombieAnimation(zombie, stateUpdate.animation);
 
-        this.setZombieAnimation(zombie, stateUpdate.animation);
+            if (!stateUpdate.shouldMove) return;
 
-        if (!stateUpdate.shouldMove) return;
+            let steeringForce = new THREE.Vector3();
 
-        let steeringForce = new THREE.Vector3();
-
-        // Only do pathfinding if state allows it
-        if (stateUpdate.shouldPathFind) {
-            if (path) {
-                this.pathDebug.showPath(path);
+            // Only do pathfinding if state allows it
+            if (stateUpdate.shouldPathFind && path) {
                 steeringForce = this.followPath(zombie, path);
             }
-        } else {
-            this.pathDebug.clearPath(); // Clear path when not pathfinding
-        }
 
-        // Log positions every 20 seconds
-        const currentTime = Date.now();
-        if (currentTime - this.lastPositionLog >= this.positionLogInterval) {
-            console.log('Position Log:');
-            console.log('Player:', {
-                x: Math.round(playerPosition.x * 100) / 100,
-                y: Math.round(playerPosition.y * 100) / 100,
-                z: Math.round(playerPosition.z * 100) / 100
-            });
-            console.log('Zombie:', {
-                x: Math.round(zombie.position.x * 100) / 100,
-                y: Math.round(zombie.position.y * 100) / 100,
-                z: Math.round(zombie.position.z * 100) / 100
-            });
-            this.lastPositionLog = currentTime;
-        }
-
-        // Apply movement updates
-        zombie.velocity.add(steeringForce.multiplyScalar(deltaTime));
-        
-        // Update velocity and position
-        if (zombie.velocity.length() > zombie.speed) {
-            zombie.velocity.normalize().multiplyScalar(zombie.speed);
-        }
-        
-        zombie.position.add(zombie.velocity.clone().multiplyScalar(deltaTime));
-        const modelY = (zombie.model.position.y - zombie.position.y) || 13;
-        zombie.model.position.set(
-            zombie.position.x,
-            modelY,
-            zombie.position.z
-        );
-
-        // Update rotation
-        if (zombie.velocity.length() > 0.01) {
-            const targetRotation = new THREE.Vector3(
-                zombie.position.x + zombie.velocity.x,
-                zombie.model.position.y,
-                zombie.position.z + zombie.velocity.z
+            // Apply movement updates
+            zombie.velocity.add(steeringForce.multiplyScalar(deltaTime));
+            
+            // Update velocity and position
+            if (zombie.velocity.length() > zombie.speed) {
+                zombie.velocity.normalize().multiplyScalar(zombie.speed);
+            }
+            
+            zombie.position.add(zombie.velocity.clone().multiplyScalar(deltaTime));
+            const modelY = (zombie.model.position.y - zombie.position.y) || 13;
+            zombie.model.position.set(
+                zombie.position.x,
+                modelY,
+                zombie.position.z
             );
-            zombie.model.lookAt(targetRotation);
+
+            // Update rotation
+            if (zombie.velocity.length() > 0.01) {
+                const targetRotation = new THREE.Vector3(
+                    zombie.position.x + zombie.velocity.x,
+                    zombie.model.position.y,
+                    zombie.position.z + zombie.velocity.z
+                );
+                zombie.model.lookAt(targetRotation);
+            }
+        });
+
+        // Log positions every 20 seconds (but only if we have zombies)
+        if (this.zombies.length > 0) {
+            const currentTime = Date.now();
+            if (currentTime - this.lastPositionLog >= this.positionLogInterval) {
+                console.log('Position Log:');
+                console.log('Player:', {
+                    x: Math.round(playerPosition.x * 100) / 100,
+                    y: Math.round(playerPosition.y * 100) / 100,
+                    z: Math.round(playerPosition.z * 100) / 100
+                });
+                this.zombies.forEach((zombie, index) => {
+                    console.log(`Zombie ${index}:`, {
+                        x: Math.round(zombie.position.x * 100) / 100,
+                        y: Math.round(zombie.position.y * 100) / 100,
+                        z: Math.round(zombie.position.z * 100) / 100
+                    });
+                });
+                this.lastPositionLog = currentTime;
+            }
         }
     }
 

@@ -136,7 +136,11 @@ export class MapRenderer {
   // associated with our GameMap
   createRendering() {
     // Create material and geometry for the ground
-    let groundMaterial = new THREE.MeshStandardMaterial({ color: 'lightgray' });
+    let groundMaterial = new THREE.MeshStandardMaterial({ 
+      color: 0xa0a0a0,  // Light gray instead of black
+      roughness: 0.8,
+      metalness: 0.2
+    });
     let groundGeometry = new THREE.BoxGeometry(
       this.gameMap.worldSize.x, 
       this.gameMap.tileSize, 
@@ -145,9 +149,14 @@ export class MapRenderer {
 
     // Create the mesh for the ground
     let ground = new THREE.Mesh(groundGeometry, groundMaterial);
+    ground.receiveShadow = true; // Add shadow receiving to ground
 
     // Prepare material for the walls and exit
-    let wallMaterial = new THREE.MeshStandardMaterial({ color: 'black' });
+    let wallMaterial = new THREE.MeshStandardMaterial({ 
+      color: 0x606060,  // Medium gray instead of black
+      roughness: 0.7,
+      metalness: 0.3
+    });
     let exitMaterial = new THREE.MeshStandardMaterial({ 
       color: 'green',
       emissive: 'green',
@@ -205,12 +214,16 @@ export class MapRenderer {
     // Merge regular wall geometries and create mesh
     let mergedWalls = BufferGeometryUtils.mergeGeometries(wallGeometries);
     let walls = new THREE.Mesh(mergedWalls, wallMaterial);
+    walls.castShadow = true;
+    walls.receiveShadow = true;
     
     // Create exit wall if we found one
     let exitWall = null;
     if (exitWallGeometries.length > 0) {
       let mergedExitWalls = BufferGeometryUtils.mergeGeometries(exitWallGeometries);
       exitWall = new THREE.Mesh(mergedExitWalls, exitMaterial);
+      exitWall.castShadow = true;
+      exitWall.receiveShadow = true;
       
       // Add a flashing animation effect to make the exit more visible
       this.setupExitWallAnimation(exitWall);

@@ -8,13 +8,43 @@ import { MazeGenerator } from './MazeGenerator.js';
 export class GameMap {
 
   // Constructor for our GameMap class
-  constructor() {
+  constructor(level = 1) {
+    // Store the current level
+    this.level = level;
+    
+    // Define maze sizes for different levels
+    this.levelConfigs = {
+      1: { // Level 1: Small maze
+        bounds: new THREE.Box3(
+          new THREE.Vector3(-250, 0, -250),
+          new THREE.Vector3(250, 0, 250)
+        ),
+        tileSize: 30,
+        zombieCount: 2
+      },
+      2: { // Level 2: Medium maze
+        bounds: new THREE.Box3(
+          new THREE.Vector3(-300, 0, -300),
+          new THREE.Vector3(300, 0, 300)
+        ),
+        tileSize: 30,
+        zombieCount: 3 // 50% more than level 1
+      },
+      3: { // Level 3: Large maze
+        bounds: new THREE.Box3(
+          new THREE.Vector3(-350, 0, -350), 
+          new THREE.Vector3(350, 0, 350)
+        ),
+        tileSize: 30,
+        zombieCount: 3
+      }
+    };
+    
+    // Apply level configuration
+    const config = this.levelConfigs[level];
   
-    // Initialize bounds - making the overall map larger
-    this.bounds = new THREE.Box3(
-      new THREE.Vector3(-250, 0, -250),  // Increased bounds from -100 to -150
-      new THREE.Vector3(250, 0, 250)     // Increased bounds from 100 to 150
-    );
+    // Initialize bounds based on level
+    this.bounds = config.bounds;
 
     // worldSize is a Vector3 with 
     // the dimensions of our bounds
@@ -22,7 +52,7 @@ export class GameMap {
     this.bounds.getSize(this.worldSize);
 
     // Let's define a tile size - increased further for wider routes
-    this.tileSize = 30;  // Increased from 14 to 20
+    this.tileSize = config.tileSize;
 
     // Columns and rows of our tile world
     this.cols = Math.floor(this.worldSize.x / this.tileSize);
@@ -31,12 +61,12 @@ export class GameMap {
     // Create our graph!
     this.mapGraph = new MapGraph(this.cols, this.rows);
     
-    
     // Generate our maze here!
     this.mazeGenerator = new MazeGenerator(this.mapGraph);
-    // this.mazeGenerator.dfsMaze(this.mapGraph.get(0));
-    this.mazeGenerator.braidedMaze(this.mapGraph.get(0), 1);
-
+    
+    // Adjust braided maze probability based on level (more loops in higher levels)
+    const braidProbability = level === 1 ? 0.7 : (level === 2 ? 0.85 : 1.0);
+    this.mazeGenerator.braidedMaze(this.mapGraph.get(0), braidProbability);
 
     // Create our map renderer
     this.mapRenderer = new MapRenderer(this);
@@ -51,6 +81,11 @@ export class GameMap {
     let y = this.tileSize;
     let z = this.bounds.min.z + (node.j * this.tileSize) + this.tileSize/2;
     return new THREE.Vector3(x, y, z);
+  }
+
+  // Get the number of zombies for this level
+  getZombieCount() {
+    return this.levelConfigs[this.level].zombieCount;
   }
 
   // Method to get from world location to node
