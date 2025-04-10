@@ -51,15 +51,6 @@
             <div id="animation-info">No zombies loaded yet</div>
         </div>
         
-        <!-- Animation controls -->
-        <div id="animation-controls">
-            <h3>Force Animation</h3>
-            <button id="force-idle">Force Idle</button>
-            <button id="force-walk">Force Walk</button>
-            <button id="force-attack">Force Attack</button>
-            <button id="force-death">Force Death</button>
-        </div>
-        
 		<script type="module" src="js/main.js"></script>
         <script type="module">
             // Wait for zombies to be loaded
@@ -97,45 +88,6 @@
                     
                     animInfoElement.innerHTML = infoHTML;
                 }, 500);
-                
-                // Setup force animation buttons
-                document.getElementById('force-idle').addEventListener('click', () => {
-                    forceAnimationOnAllZombies('Idle');
-                });
-                
-                document.getElementById('force-walk').addEventListener('click', () => {
-                    forceAnimationOnAllZombies('Walk');
-                });
-                
-                document.getElementById('force-attack').addEventListener('click', () => {
-                    forceAnimationOnAllZombies('Attack');
-                });
-                
-                document.getElementById('force-death').addEventListener('click', () => {
-                    forceAnimationOnAllZombies('Death');
-                });
-            }
-            
-            function forceAnimationOnAllZombies(animationName) {
-                if (!zombieManager || !zombieManager.zombies) return;
-                
-                console.log(`Forcing animation "${animationName}" on all zombies`);
-                
-                zombieManager.zombies.forEach((zombie, index) => {
-                    if (!zombie.actions || !zombie.actions[animationName]) {
-                        console.warn(`Zombie #${index} doesn't have animation "${animationName}"`);
-                        return;
-                    }
-                    
-                    // Stop current animation
-                    if (zombie.currentAnimation && zombie.actions[zombie.currentAnimation]) {
-                        zombie.actions[zombie.currentAnimation].fadeOut(0.3);
-                    }
-                    
-                    // Play new animation
-                    zombie.actions[animationName].reset().fadeIn(0.3).play();
-                    zombie.currentAnimation = animationName;
-                });
             }
         </script>
 	</body>
