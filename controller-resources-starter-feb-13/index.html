@@ -5,9 +5,138 @@
 		<title>AI in Games</title>
 		<style>
 			body { margin: 0; }
+            #debug-panel {
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                background: rgba(0, 0, 0, 0.7);
+                color: white;
+                padding: 10px;
+                font-family: monospace;
+                border-radius: 5px;
+                max-width: 300px;
+                max-height: 400px;
+                overflow-y: auto;
+                z-index: 1000;
+            }
+            #animation-controls {
+                position: fixed;
+                bottom: 10px;
+                left: 10px;
+                background: rgba(0, 0, 0, 0.7);
+                color: white;
+                padding: 10px;
+                font-family: monospace;
+                border-radius: 5px;
+                z-index: 1000;
+            }
+            button {
+                margin: 5px;
+                padding: 5px 10px;
+                background: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 3px;
+                cursor: pointer;
+            }
+            button:hover {
+                background: #45a049;
+            }
 		</style>
 	</head>
 	<body>
+        <!-- Debug panel for animation info -->
+        <div id="debug-panel">
+            <h3>Animation Debug</h3>
+            <div id="animation-info">No zombies loaded yet</div>
+        </div>
+        
+        <!-- Animation controls -->
+        <div id="animation-controls">
+            <h3>Force Animation</h3>
+            <button id="force-idle">Force Idle</button>
+            <button id="force-walk">Force Walk</button>
+            <button id="force-attack">Force Attack</button>
+            <button id="force-death">Force Death</button>
+        </div>
+        
 		<script type="module" src="js/main.js"></script>
+        <script type="module">
+            // Wait for zombies to be loaded
+            let zombieManager = null;
+            let checkInterval = setInterval(() => {
+                // Try to find the zombieManager from the global scope
+                if (window.zombieManager && window.zombieManager.zombies) {
+                    zombieManager = window.zombieManager;
+                    clearInterval(checkInterval);
+                    console.log("Debug tools connected to zombie manager!");
+                    setupDebugTools();
+                }
+            }, 1000);
+            
+            function setupDebugTools() {
+                const animInfoElement = document.getElementById('animation-info');
+                
+                // Setup animation info updater
+                setInterval(() => {
+                    if (!zombieManager || !zombieManager.zombies) return;
+                    
+                    let infoHTML = `<strong>${zombieManager.zombies.length} zombies</strong><br>`;
+                    
+                    zombieManager.zombies.forEach((zombie, index) => {
+                        if (index > 5) return; // Limit to first 5 zombies to avoid clutter
+                        
+                        const availableAnims = Object.keys(zombie.actions || {}).join(', ');
+                        infoHTML += `<div style="margin-top: 10px; padding-top: 5px; border-top: 1px solid #444;">
+                            <strong>Zombie #${index}</strong><br>
+                            Current: ${zombie.currentAnimation || 'none'}<br>
+                            Available: ${availableAnims}<br>
+                            Pos: (${Math.round(zombie.position.x)}, ${Math.round(zombie.position.z)})
+                        </div>`;
+                    });
+                    
+                    animInfoElement.innerHTML = infoHTML;
+                }, 500);
+                
+                // Setup force animation buttons
+                document.getElementById('force-idle').addEventListener('click', () => {
+                    forceAnimationOnAllZombies('Idle');
+                });
+                
+                document.getElementById('force-walk').addEventListener('click', () => {
+                    forceAnimationOnAllZombies('Walk');
+                });
+                
+                document.getElementById('force-attack').addEventListener('click', () => {
+                    forceAnimationOnAllZombies('Attack');
+                });
+                
+                document.getElementById('force-death').addEventListener('click', () => {
+                    forceAnimationOnAllZombies('Death');
+                });
+            }
+            
+            function forceAnimationOnAllZombies(animationName) {
+                if (!zombieManager || !zombieManager.zombies) return;
+                
+                console.log(`Forcing animation "${animationName}" on all zombies`);
+                
+                zombieManager.zombies.forEach((zombie, index) => {
+                    if (!zombie.actions || !zombie.actions[animationName]) {
+                        console.warn(`Zombie #${index} doesn't have animation "${animationName}"`);
+                        return;
+                    }
+                    
+                    // Stop current animation
+                    if (zombie.currentAnimation && zombie.actions[zombie.currentAnimation]) {
+                        zombie.actions[zombie.currentAnimation].fadeOut(0.3);
+                    }
+                    
+                    // Play new animation
+                    zombie.actions[animationName].reset().fadeIn(0.3).play();
+                    zombie.currentAnimation = animationName;
+                });
+            }
+        </script>
 	</body>
 </html>

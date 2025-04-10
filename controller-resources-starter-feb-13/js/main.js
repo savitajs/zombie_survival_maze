@@ -351,6 +351,9 @@ function init() {
 
     // Load the first level
     loadLevel(gameState.currentLevel);
+    
+    // Expose zombieManager to the window so debug tools can access it
+    window.zombieManager = zombieManager;
 
     animate();
 }

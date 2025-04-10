@@ -1,9 +1,9 @@
 export class ZombieState {
     static States = {
-        IDLE: 'idle',
-        APPROACH: 'approach',
-        ATTACK: 'attack',
-        DEATH: 'death'
+        IDLE: 'Idle',
+        APPROACH: 'Approach',
+        ATTACK: 'Attack',
+        DEATH: 'Death'
     };
 
     constructor(zombie) {
@@ -30,7 +30,7 @@ export class ZombieState {
     update(playerPosition, playerAttacking, currentPath) {
         if (this.currentState === ZombieState.States.DEATH) {
             return { 
-                animation: 'death', 
+                animation: 'Death', 
                 shouldMove: false,
                 shouldPathFind: false,
                 clearPath: true // Add flag to clear debug path
@@ -45,7 +45,7 @@ export class ZombieState {
             this.currentState === ZombieState.States.APPROACH) {
             this.currentState = ZombieState.States.IDLE;
             return {
-                animation: 'idle',
+                animation: 'Idle',
                 shouldMove: false,
                 shouldPathFind: false,
                 pathDistance: pathDistance,
@@ -59,7 +59,7 @@ export class ZombieState {
             if (this.hitPoints <= 0) {
                 this.currentState = ZombieState.States.DEATH;
                 return { 
-                    animation: 'death', 
+                    animation: 'Death', 
                     shouldMove: false,
                     shouldPathFind: false,
                     clearPath: true // Add flag to clear debug path
@@ -74,7 +74,7 @@ export class ZombieState {
                     this.currentState = ZombieState.States.APPROACH;
                 }
                 return { 
-                    animation: 'idle', 
+                    animation: 'Idle', 
                     shouldMove: false,
                     shouldPathFind: false,
                     pathDistance: pathDistance,
@@ -86,7 +86,7 @@ export class ZombieState {
                     this.currentState = ZombieState.States.ATTACK;
                 }
                 return { 
-                    animation: 'walk', 
+                    animation: 'Walk', 
                     shouldMove: true,
                     shouldPathFind: true,
                     pathDistance: pathDistance
@@ -96,14 +96,14 @@ export class ZombieState {
                 if (pathDistance > this.attackRange) {
                     this.currentState = ZombieState.States.APPROACH;
                     return { 
-                        animation: 'walk', 
+                        animation: 'Walk', 
                         shouldMove: true,
                         shouldPathFind: true,
                         pathDistance: pathDistance
                     };
                 }
                 return { 
-                    animation: 'attack', 
+                    animation: 'Attack', 
                     shouldMove: false,
                     shouldPathFind: false,
                     pathDistance: pathDistance

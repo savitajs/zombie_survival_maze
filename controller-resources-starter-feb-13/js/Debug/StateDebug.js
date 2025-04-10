@@ -22,16 +22,16 @@ export class StateDebug {
     updateState(state, pathDistance) {
         let stateColor;
         switch(state) {
-            case 'idle':
+            case 'Idle':
                 stateColor = 'gray';
                 break;
-            case 'approach':
+            case 'Approach':
                 stateColor = 'yellow';
                 break;
-            case 'attack':
+            case 'Attack':
                 stateColor = 'red';
                 break;
-            case 'death':
+            case 'Death':
                 stateColor = 'black';
                 break;
             default:
