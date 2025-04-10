@@ -15,14 +15,8 @@ export class PathDebug {
     showPath(path) {
         this.clearPath();
         
-        if (!path || path.length < 2) {
-            console.log("No valid path to display");
-            return;
-        }
-
-        console.log("Displaying path with", path.length, "points:", path);
+        if (!path || path.length < 2) return;
         
-        // Raise path higher above ground for visibility
         const points = path.map(point => new THREE.Vector3(point.x, 15, point.z));
         const geometry = new THREE.BufferGeometry().setFromPoints(points);
         

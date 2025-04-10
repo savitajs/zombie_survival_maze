@@ -34,6 +34,10 @@ export class Player extends Character {
     // Add forward direction for camera positioning
     // The forward vector now points where the POINTY part is facing
     this.forward = new THREE.Vector3(0, 0, 1);
+
+    // Add player health property
+    this.totalHealth = 100;
+    this.maxHealth = 100;
   }
 
   switchState(state) {
@@ -188,6 +192,14 @@ export class Player extends Character {
   getBackwardDirection() {
     // Return the direction the base is facing
     return this.forward.clone().negate();
+  }
+
+  getTotalHealth() {
+    return this.totalHealth;
+  }
+
+  setTotalHealth(health) {
+    this.totalHealth = Math.max(0, Math.min(health, this.maxHealth));
   }
 }
 

@@ -6,6 +6,7 @@ import { PathFinder } from '../Pathfinding/PathFinder.js';
 import { PathDebug } from '../Debug/PathDebug.js';
 import { ZombieState } from '../States/ZombieState.js';
 import { StateDebug } from '../Debug/StateDebug.js';
+import { HealthManager } from '../Health/HealthManager.js';
 
 export class ZombieManager {
     constructor(scene, gameMap) {
@@ -31,8 +32,13 @@ export class ZombieManager {
         this.pathDebug = new PathDebug(scene);
         this.stateDebug = new StateDebug(scene);
         
-        this.mixers = [];  // Store animation mixers
-        this.animations = {};  // Store animations by name
+        this.mixers = [];  // We'll keep this for consistency but won't use it
+        this.animations = {
+            'idle': 'idle',
+            'walk': 'walk',
+            'attack': 'attack',
+            'death': 'death'
+        };  // Simple string mappings instead of actual animations
 
         this.detectionRadius = 50; // Detection radius in units
         this.attackRadius = 5;    // Attack radius in units
@@ -49,56 +55,22 @@ export class ZombieManager {
             }
         });
 
-        // Create a fallback geometry (temporary for testing)
-        const createFallbackModel = () => {
-            console.log('Creating fallback cube model');
-            const geometry = new THREE.BoxGeometry(1, 2, 1);
-            const material = new THREE.MeshPhongMaterial({ color: 0xff0000 });
-            const mesh = new THREE.Mesh(geometry, material);
-            this.zombieModel = mesh;
-            this.spawnInitialZombies();
-        };
+        this.healthManager = null;
 
         this.loadZombieModel();
     }
 
+    setHealthBar(healthBar, player) {
+        this.healthManager = new HealthManager(healthBar, player);
+    }
+
     loadZombieModel() {
-        const loader = new GLTFLoader();
-        loader.load(
-            './models/low_poly_zombie_game_animation.glb',
-            (gltf) => {
-                console.log('Zombie model loaded successfully');
-                console.log('Available animations:', gltf.animations);
-                
-                this.zombieModel = gltf.scene;
-                
-                // Reduce scale to make zombie smaller relative to environment
-                this.zombieModel.scale.set(0.8, 0.8, 0.8);  // Changed from 2 to 0.8
-                
-                // Position slightly above ground to show feet
-                const box = new THREE.Box3().setFromObject(this.zombieModel);
-                const height = box.max.y - box.min.y;
-                this.zombieModel.position.set(0, (height * 0.1) + 13, 0);  // Lift by 10% of height
-                this.zombieModel.rotation.y = Math.PI;
-                
-                console.log('Model loaded with height:', height);
-                
-                // Store animations
-                gltf.animations.forEach(animation => {
-                    this.animations[animation.name] = animation;
-                    console.log('Animation loaded:', animation.name);
-                });
-                
-                this.spawnInitialZombies();
-            },
-            (xhr) => {
-                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
-            },
-            (error) => {
-                console.error('Error loading zombie model:', error);
-                createFallbackModel();
-            }
-        );
+        console.log('Creating cube model');
+        const geometry = new THREE.BoxGeometry(2, 4, 2); // Doubled size
+        const material = new THREE.MeshPhongMaterial({ color: 0xff0000 });
+        this.zombieModel = new THREE.Mesh(geometry, material);
+        this.zombieModel.position.y = 20; // Set initial height to 20
+        this.spawnInitialZombies();
     }
 
     spawnInitialZombies() {
@@ -119,13 +91,11 @@ export class ZombieManager {
                 this.gameMap.localize(node).z
             ));
             
-            if (validNodes.length === 0) return new THREE.Vector3(0, 40, 0);
+            if (validNodes.length === 0) return new THREE.Vector3(0, 20, 0); // Changed y to 20
             
             const randomNode = validNodes[Math.floor(Math.random() * validNodes.length)];
             const worldPos = this.gameMap.localize(randomNode);
-            const box = new THREE.Box3().setFromObject(this.zombieModel);
-            const height = box.max.y - box.min.y;
-            worldPos.y = height * 0.1; // Match the height offset from model loading
+            worldPos.y = 20; // Set y position to 20
             
             return worldPos;
         };
@@ -145,17 +115,6 @@ export class ZombieManager {
         // Now create state with the complete zombie object
         newZombie.state = new ZombieState(newZombie);
 
-        // Set up animation mixer for this zombie
-        const mixer = new THREE.AnimationMixer(newZombie.model);
-        this.mixers.push(mixer);
-        
-        // Play idle animation by default
-        if (this.animations['idle']) {
-            const action = mixer.clipAction(this.animations['idle']);
-            action.play();
-        }
-
-        newZombie.mixer = mixer;
         newZombie.model.position.copy(position);
         this.scene.add(newZombie.model);
         this.zombies.push(newZombie);
@@ -164,18 +123,21 @@ export class ZombieManager {
     setZombieAnimation(zombie, animationName) {
         if (zombie.currentAnimation === animationName) return;
         
-        const mixer = zombie.mixer;
-        if (!mixer || !this.animations[animationName]) return;
-
-        // Fade out current animation
-        if (zombie.currentAnimation) {
-            const current = mixer.clipAction(this.animations[zombie.currentAnimation]);
-            current.fadeOut(0.5);
+        // Update material color based on state
+        switch(animationName) {
+            case 'death':
+                zombie.model.material.color.setHex(0x000000); // Black for death
+                break;
+            case 'attack':
+                zombie.model.material.color.setHex(0xff0000); // Red for attack
+                break;
+            case 'walk':
+                zombie.model.material.color.setHex(0xff3333); // Lighter red for walk
+                break;
+            case 'idle':
+                zombie.model.material.color.setHex(0xff6666); // Even lighter red for idle
+                break;
         }
-
-        // Fade in new animation
-        const newAction = mixer.clipAction(this.animations[animationName]);
-        newAction.reset().fadeIn(0.5).play();
         
         zombie.currentAnimation = animationName;
     }
@@ -274,16 +236,23 @@ export class ZombieManager {
     }
 
     update(deltaTime, playerPosition) {
-        // Update animation mixers
-        this.mixers.forEach(mixer => mixer.update(deltaTime));
+        const currentTime = Date.now();
+        
+        // Get reference to health bar if we don't have it
+        if (!this.healthBar) {
+            this.healthBar = document.querySelector('.health-bar');
+        }
 
-        // Update all zombies
+        // Update health manager
+        if (this.healthManager) {
+            this.healthManager.update();
+        }
+
         this.zombies.forEach(zombie => {
-            // Get path first so we can use it for distance calculation
             const path = this.pathFinder.findPathToTarget(zombie.position, playerPosition);
             const stateUpdate = zombie.state.update(playerPosition, this.playerAttacking, path);
             
-            // Update debug displays with path distance - only for the first zombie
+            // Update debug displays
             if (zombie === this.zombies[0]) {
                 this.stateDebug.updateState(stateUpdate.animation, stateUpdate.pathDistance);
                 
@@ -300,48 +269,49 @@ export class ZombieManager {
 
             this.setZombieAnimation(zombie, stateUpdate.animation);
 
-            if (!stateUpdate.shouldMove) return;
-
-            let steeringForce = new THREE.Vector3();
-
-            // Only do pathfinding if state allows it
-            if (stateUpdate.shouldPathFind && path) {
-                steeringForce = this.followPath(zombie, path);
+            // Handle attacking state and health reduction
+            if (stateUpdate.animation === 'attack' && this.healthManager) {
+                this.healthManager.handleZombieAttack();
             }
 
-            // Apply movement updates
-            zombie.velocity.add(steeringForce.multiplyScalar(deltaTime));
-            
-            // Update velocity and position
-            if (zombie.velocity.length() > zombie.speed) {
-                zombie.velocity.normalize().multiplyScalar(zombie.speed);
-            }
-            
-            zombie.position.add(zombie.velocity.clone().multiplyScalar(deltaTime));
-            const modelY = (zombie.model.position.y - zombie.position.y) || 13;
-            zombie.model.position.set(
-                zombie.position.x,
-                modelY,
-                zombie.position.z
-            );
-
-            // Update rotation
-            if (zombie.velocity.length() > 0.01) {
-                const targetRotation = new THREE.Vector3(
-                    zombie.position.x + zombie.velocity.x,
-                    zombie.model.position.y,
-                    zombie.position.z + zombie.velocity.z
+            // Handle movement
+            if (stateUpdate.shouldMove && path && path.length > 0) {
+                const steeringForce = this.followPath(zombie, path);
+                zombie.velocity.add(steeringForce.multiplyScalar(deltaTime));
+                
+                if (zombie.velocity.length() > zombie.speed) {
+                    zombie.velocity.normalize().multiplyScalar(zombie.speed);
+                }
+                
+                zombie.position.add(zombie.velocity.clone().multiplyScalar(deltaTime));
+                zombie.model.position.set(
+                    zombie.position.x,
+                    20, // Keep y position fixed at 20
+                    zombie.position.z
                 );
-                zombie.model.lookAt(targetRotation);
+
+                // Update rotation
+                if (zombie.velocity.length() > 0.01) {
+                    const targetRotation = new THREE.Vector3(
+                        zombie.position.x + zombie.velocity.x,
+                        20,
+                        zombie.position.z + zombie.velocity.z
+                    );
+                    zombie.model.lookAt(targetRotation);
+                }
             }
         });
 
-        // Log positions every 20 seconds (but only if we have zombies)
+        // Log positions and health every 20 seconds (but only if we have zombies)
         if (this.zombies.length > 0) {
             const currentTime = Date.now();
             if (currentTime - this.lastPositionLog >= this.positionLogInterval) {
-                console.log('Position Log:');
-                console.log('Player:', {
+                console.log('=== Status Log ===');
+                if (this.healthManager) {
+                    const health = this.healthManager.getCurrentHealth();
+                    console.log('Player Health:', health);
+                }
+                console.log('Player Position:', {
                     x: Math.round(playerPosition.x * 100) / 100,
                     y: Math.round(playerPosition.y * 100) / 100,
                     z: Math.round(playerPosition.z * 100) / 100
@@ -353,6 +323,7 @@ export class ZombieManager {
                         z: Math.round(zombie.position.z * 100) / 100
                     });
                 });
+                console.log('================');
                 this.lastPositionLog = currentTime;
             }
         }
