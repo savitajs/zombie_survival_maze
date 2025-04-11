@@ -73,7 +73,7 @@ export class ZombieManager {
                 // Position slightly above ground to show feet
                 const box = new THREE.Box3().setFromObject(this.zombieModel);
                 const height = box.max.y - box.min.y;
-                this.zombieModel.position.set(0, (height * 0.1) + 13, 0);
+                this.zombieModel.position.set(0, (height * 0.1) + 40, 0);
                 this.zombieModel.rotation.y = Math.PI;
                 
                 console.log('Model loaded with height:', height);
@@ -114,7 +114,7 @@ export class ZombieManager {
                         // Position slightly above ground to show feet
                         const box = new THREE.Box3().setFromObject(this.zombieModel);
                         const height = box.max.y - box.min.y;
-                        this.zombieModel.position.set(0, (height * 0.1) + 13, 0);
+                        this.zombieModel.position.set(0, (height * 0.1) + 40, 0);
                         this.zombieModel.rotation.y = Math.PI;
                         
                         console.log('Model loaded with height:', height);
@@ -449,7 +449,7 @@ export class ZombieManager {
             const animationMap = {
                 'Idle': 'Idle',
                 'Walk': 'Walk',
-                'Attack': 'Attack',
+                'Attack': 'Attack ',
                 'Death': 'Death'
             };
             
@@ -480,7 +480,7 @@ export class ZombieManager {
                 }
                 
                 zombie.position.add(zombie.velocity.clone().multiplyScalar(deltaTime));
-                const modelY = zombie.model.position.y || 13; // Use existing Y or default to 13
+                const modelY = zombie.model.position.y || 40; // Use existing Y or default to 40
                 zombie.model.position.set(
                     zombie.position.x,
                     modelY,
