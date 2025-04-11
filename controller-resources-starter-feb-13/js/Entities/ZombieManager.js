@@ -4,8 +4,8 @@ import { ZombieCollisionHandler } from './ZombieCollisionHandler.js';
 import { WhiskerDebug } from '../Debug/ZombieDebug.js';
 import { PathFinder } from '../Pathfinding/PathFinder.js';
 import { PathDebug } from '../Debug/PathDebug.js';
-import { ZombieState } from '../States/ZombieState.js';
 import { StateDebug } from '../Debug/StateDebug.js';
+import { ZombieStateManager } from '../States/ZombieStateManager.js';
 
 export class ZombieManager {
     constructor(scene, gameMap) {
@@ -281,7 +281,7 @@ export class ZombieManager {
                     }
                     
                     // Create state with the complete zombie object
-                    newZombie.state = new ZombieState(newZombie);
+                    newZombie.state = new ZombieStateManager(newZombie);
                     newZombie.model.position.copy(position);
                     this.scene.add(newZombie.model);
                     this.zombies.push(newZombie);
@@ -306,7 +306,7 @@ export class ZombieManager {
     setZombieAnimation(zombie, animationName) {
         if (zombie.currentAnimation === animationName) return;
         
-        // Check if this zombie has the requested animation
+        //Check if this zombie has the requested animation
         if (!zombie.actions || !zombie.actions[animationName]) {
             console.warn(`Animation '${animationName}' not found for zombie, available animations: ${Object.keys(zombie.actions).join(', ')}`);
             return;
@@ -426,21 +426,20 @@ export class ZombieManager {
 
         // Update all zombies
         this.zombies.forEach(zombie => {
-            // Get path first so we can use it for distance calculation
             const path = this.pathFinder.findPathToTarget(zombie.position, playerPosition);
-            const stateUpdate = zombie.state.update(playerPosition, this.playerAttacking, path);
+                        const stateUpdateResult = zombie.state.update(playerPosition, this.playerAttacking, path);
             
             // Update debug displays with path distance - only for the first zombie
             if (zombie === this.zombies[0]) {
-                this.stateDebug.updateState(stateUpdate.animation, stateUpdate.pathDistance);
+                this.stateDebug.updateState(stateUpdateResult.animation, stateUpdateResult.pathDistance);
                 
                 // Clear path if state indicates it should be cleared
-                if (stateUpdate.clearPath) {
+                if (stateUpdateResult.clearPath) {
                     this.pathDebug.clearPath();
                 }
                 
                 // Only show path for the first zombie to avoid visual clutter
-                if (stateUpdate.shouldPathFind && path) {
+                if (stateUpdateResult.shouldPathFind && path) {
                     this.pathDebug.showPath(path);
                 }
             }
@@ -455,20 +454,20 @@ export class ZombieManager {
             };
             
             // Get the correct animation name from the map
-            const availableAnimName = animationMap[stateUpdate.animation];
+            const availableAnimName = animationMap[stateUpdateResult.animation];
             if (availableAnimName) {
                 this.setZombieAnimation(zombie, availableAnimName);
             } else {
-                console.warn(`Animation "${stateUpdate.animation}" not mapped to an available animation`);
+                console.warn(`Animation "${stateUpdateResult.animation}" not mapped to an available animation`);
             }
 
             // *** CRITICAL FIX: Don't return early, otherwise we'll only update the first zombie ***
             // Only continue with movement logic if the state indicates movement is allowed
-            if (stateUpdate.shouldMove) {
+            if (stateUpdateResult.shouldMove) {
                 let steeringForce = new THREE.Vector3();
 
                 // Only do pathfinding if state allows it
-                if (stateUpdate.shouldPathFind && path) {
+                if (stateUpdateResult.shouldPathFind && path) {
                     steeringForce = this.followPath(zombie, path);
                 }
 

@@ -20,7 +20,7 @@ export class PathDebug {
             return;
         }
 
-        console.log("Displaying path with", path.length, "points:", path);
+        //console.log("Displaying path with", path.length, "points:", path);
         
         // Raise path higher above ground for visibility
         const points = path.map(point => new THREE.Vector3(point.x, 15, point.z));

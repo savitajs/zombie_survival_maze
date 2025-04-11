@@ -4,9 +4,10 @@ import { Player } from './Behaviour/Player.js';
 import { Controller } from './Behaviour/Controller.js';
 import { GameMap } from './World/GameMap.js';
 import { ZombieManager } from './Entities/ZombieManager.js';
-import { HealthBar } from './UI/HealthBar.js';
+import { HealthBar } from './PlayerHealth/HealthBar.js';
 import { HealthPackManager } from './Entities/HealthPackManager.js';
-import { HealthPack } from './Entities/HealthPack.js';  // Add this import
+import { HealthPack } from './Entities/HealthPack.js';
+import { HealthManager } from './PlayerHealth/HealthManager.js';
 
 // Create Scene
 const scene = new THREE.Scene();
@@ -45,9 +46,10 @@ let player;
 // Declare ZombieManager
 let zombieManager;
 
-// Declare HealthBar and HealthPackManager
+// Declare HealthBar, HealthPackManager, and HealthManager
 let healthBar;
 let healthPackManager;
+let healthManager;
 
 // Game state
 let gameState = {
@@ -335,8 +337,12 @@ function init() {
     gameMap = new GameMap();
     scene.add(gameMap.gameObject);
 
-    // Initialize health bar
+    // Create player
+    player = new Player(new THREE.Color(0x00ff00));
+
+    // Initialize health bar and health manager
     healthBar = new HealthBar(100);
+    healthManager = new HealthManager(player, healthBar);
 
     // Initialize health pack manager AFTER gameMap is created
     healthPackManager = new HealthPackManager(scene, gameMap);
@@ -356,18 +362,6 @@ function init() {
     window.zombieManager = zombieManager;
 
     animate();
-}
-
-// Add this function to handle player damage
-function damagePlayer(amount) {
-    const currentHealth = healthBar.currentHealth;
-    healthBar.updateHealth(currentHealth - amount);
-    
-    if (healthBar.currentHealth <= 0) {
-        // Handle player death
-        console.log('Player died!');
-        // Add your game over logic here
-    }
 }
 
 // Cleanup function if needed
@@ -492,8 +486,8 @@ function animate() {
         }
         
         // Update health packs and check for pickups
-        if (healthPackManager.update(player.location, healthBar.currentHealth, healthBar.maxHealth)) {
-            healthBar.updateHealth(healthBar.maxHealth); // Restore full health
+        if (healthPackManager.update(player.location, healthManager.getCurrentHealth(), healthManager.getMaxHealth())) {
+            healthManager.healPlayer(healthManager.getMaxHealth());
         }
     }
     

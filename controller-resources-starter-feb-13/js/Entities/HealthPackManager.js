@@ -52,13 +52,14 @@ export class HealthPackManager {
         return worldPos;
     }
 
-    update(playerPosition, playerHealth, maxHealth) {
+    update(playerPosition, currentHealth, maxHealth) {
         const PICKUP_RADIUS = 3;
 
         for (const pack of this.healthPacks) {
             if (!pack.used) {
                 const distance = pack.position.distanceTo(playerPosition);
-                if (distance < PICKUP_RADIUS && playerHealth < maxHealth) {
+                // Only collect health pack if player is not at full health
+                if (distance < PICKUP_RADIUS && currentHealth < maxHealth) {
                     return pack.collect();
                 }
             }
