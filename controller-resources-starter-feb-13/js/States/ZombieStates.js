@@ -52,7 +52,7 @@ export class ApproachState extends ZombieBaseState {
 export class AttackState extends ZombieBaseState {
     enterState(zombie) {
         console.log("ZombieStates.js: State changed to ATTACK");
-        return { animation: 'Attak' };
+        return { animation: 'Attack' };
     }
 
     updateState(zombie, playerPosition, currentPath) {
