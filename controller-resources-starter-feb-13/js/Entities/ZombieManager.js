@@ -56,7 +56,7 @@ export class ZombieManager {
         const loader = new GLTFLoader();
         
         // First try with the correct path
-        const modelPath = './public/models/low_poly_zombie_game_animation.glb';
+        const modelPath = './public/models/parasite_zombie.glb';
         console.log('Attempting to load zombie model from:', modelPath);
         
         loader.load(
@@ -68,7 +68,8 @@ export class ZombieManager {
                 this.zombieModel = gltf.scene;
                 
                 // Reduce scale to make zombie smaller relative to environment
-                this.zombieModel.scale.set(0.8, 0.8, 0.8);
+                // Adjusted scale for the new parasite_zombie model
+                this.zombieModel.scale.set(8.0, 8.0, 8.0);
                 
                 // Position above ground to prevent being submerged
                 // Calculate the model's height
@@ -99,7 +100,7 @@ export class ZombieManager {
                 console.error('Error loading zombie model from', modelPath, error);
                 
                 // Try the alternate path as a fallback
-                const altPath = './models/low_poly_zombie_game_animation.glb';
+                const altPath = './models/parasite_zombie.glb';
                 console.log('Trying alternate path:', altPath);
                 
                 loader.load(
@@ -111,7 +112,8 @@ export class ZombieManager {
                         this.zombieModel = gltf.scene;
                         
                         // Reduce scale to make zombie smaller relative to environment
-                        this.zombieModel.scale.set(0.8, 0.8, 0.8);
+                        // Adjusted scale for the new parasite_zombie model
+                        this.zombieModel.scale.set(8.0, 8.0, 8.0);
                         
                         // Position above ground to prevent being submerged
                         // Calculate the model's height
@@ -212,7 +214,7 @@ export class ZombieManager {
         const loader = new GLTFLoader();
         
         // Try both paths
-        const tryPaths = ['./public/models/low_poly_zombie_game_animation.glb', './models/low_poly_zombie_game_animation.glb'];
+        const tryPaths = ['./public/models/parasite_zombie.glb', './models/parasite_zombie.glb'];
         let loadAttempt = 0;
         
         const loadModelAtPath = (pathIndex) => {
@@ -230,7 +232,7 @@ export class ZombieManager {
                     console.log(`Individual zombie model loaded from ${path}`);
                     
                     const zombieModelInstance = gltf.scene;
-                    zombieModelInstance.scale.set(0.8, 0.8, 0.8);
+                    zombieModelInstance.scale.set(8.0, 8.0, 8.0);
                     
                     // Calculate proper height for positioning
                     const box = new THREE.Box3().setFromObject(zombieModelInstance);
@@ -457,10 +459,12 @@ export class ZombieManager {
 
             // Set animation according to state
             // Map state animation names to actual available animation names
+            // Updated to match the correct case for parasite_zombie model animations
             const animationMap = {
-                'Idle': 'Idle',
-                'Walk': 'Walk',
-                'Attack': 'Attack ',
+                'Idle': 'Idle', 
+                'Walk': 'Run', // Use Run for Walk since there's no Walk animation
+                'Run': 'Run',
+                'Attack': 'Attack',
                 'Death': 'Death'
             };
             

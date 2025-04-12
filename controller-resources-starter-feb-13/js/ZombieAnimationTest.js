@@ -70,7 +70,7 @@ class ZombieAnimationTest {
         console.log('Loading zombie model...');
         const loader = new GLTFLoader();
         loader.load(
-            './models/low_poly_zombie_game_animation.glb',
+            './models/parasite_zombie.glb',
             (gltf) => {
                 console.log('Model loaded successfully!');
                 console.log('Available animations:', gltf.animations.map(a => a.name));
@@ -101,7 +101,7 @@ class ZombieAnimationTest {
     createZombie(x, z, label) {
         // Create a new zombie instance
         const loader = new GLTFLoader();
-        loader.load('./models/low_poly_zombie_game_animation.glb', (gltf) => {
+        loader.load('./models/parasite_zombie.glb', (gltf) => {
             const model = gltf.scene;
             model.position.set(x, 0, z);
             // Changed from 0.8 to 0.4 (half the size)
@@ -241,7 +241,7 @@ class ZombieAnimationTest {
         globalFolder.add({
             playAllWalk: () => {
                 this.zombies.forEach((zombie, index) => {
-                    this.playAnimation(index, 'Walk');
+                    this.playAnimation(index, 'Run');
                 });
             }
         }, 'playAllWalk').name('All Walk');

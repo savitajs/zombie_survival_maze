@@ -201,7 +201,7 @@ export class Player extends Character {
           const currentTime = this.animationDebug.animationTime % duration;
           const progress = Math.floor((currentTime / duration) * 100);
           
-          console.log(`Animation "${this.currentAnimation}": ${currentTime.toFixed(2)}s / ${duration.toFixed(2)}s (${progress}% complete)`);
+          //console.log(`Animation "${this.currentAnimation}": ${currentTime.toFixed(2)}s / ${duration.toFixed(2)}s (${progress}% complete)`);
           
           this.animationDebug.lastLogTime = Math.floor(this.animationDebug.animationTime);
         }
