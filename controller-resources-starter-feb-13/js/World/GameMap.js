@@ -20,7 +20,7 @@ export class GameMap {
           new THREE.Vector3(250, 0, 250)
         ),
         tileSize: 30,
-        zombieCount: 2
+        zombieCount: 10
       },
       2: { // Level 2: Medium maze
         bounds: new THREE.Box3(
@@ -28,7 +28,7 @@ export class GameMap {
           new THREE.Vector3(300, 0, 300)
         ),
         tileSize: 30,
-        zombieCount: 3 // 50% more than level 1
+        zombieCount: 15
       },
       3: { // Level 3: Large maze
         bounds: new THREE.Box3(
@@ -36,7 +36,7 @@ export class GameMap {
           new THREE.Vector3(350, 0, 350)
         ),
         tileSize: 30,
-        zombieCount: 3
+        zombieCount: 25
       }
     };
     
