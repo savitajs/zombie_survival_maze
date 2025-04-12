@@ -85,7 +85,7 @@ export class Player extends Character {
           const box = new THREE.Box3().setFromObject(model);
           const size = new THREE.Vector3();
           box.getSize(size);
-          const scale = 2.5 / Math.max(size.x, size.y, size.z);
+          const scale = 9.5 / Math.max(size.x, size.y, size.z);
           
           // Apply scale and position
           model.scale.set(scale, scale, scale);
@@ -248,10 +248,22 @@ export class Player extends Character {
     // Apply force from controller input if moving
     if (currentlyMoving) {
         const moveForce = controller.getMoveForce();
-        this.applyForce(moveForce);
-    } else if (this.velocity.length() > 0) {
-        const brakeForce = this.applyBrakes();
-        this.applyForce(brakeForce);
+        
+        // Transform the movement force based on camera angle
+        // This makes movement relative to where the player is facing
+        const transformedForce = new THREE.Vector3();
+        const playerAngle = this.gameObject.rotation.y;
+        
+        // Apply rotation transform to make movement relative to player's facing direction
+        // Using standard rotation matrix for 2D rotation around Y axis
+        transformedForce.x = moveForce.x * Math.cos(playerAngle) - moveForce.z * Math.sin(playerAngle);
+        transformedForce.z = moveForce.x * Math.sin(playerAngle) + moveForce.z * Math.cos(playerAngle);
+        transformedForce.y = 0;
+        
+        this.applyForce(transformedForce);
+    } else {
+        // Immediately stop when no movement input is received
+        this.velocity.set(0, 0, 0);
     }
     
     // Update physics

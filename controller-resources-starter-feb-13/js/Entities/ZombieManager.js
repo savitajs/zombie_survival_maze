@@ -68,7 +68,8 @@ export class ZombieManager {
                 this.zombieModel = gltf.scene;
                 
                 // Reduce scale to make zombie smaller relative to environment
-                this.zombieModel.scale.set(0.8, 0.8, 0.8);
+                // Changed from 0.8 to 0.4 (half the size)
+                this.zombieModel.scale.set(0.4, 0.4, 0.4);
                 
                 // Position above ground to prevent being submerged
                 // Calculate the model's height
@@ -111,7 +112,8 @@ export class ZombieManager {
                         this.zombieModel = gltf.scene;
                         
                         // Reduce scale to make zombie smaller relative to environment
-                        this.zombieModel.scale.set(0.8, 0.8, 0.8);
+                        // Changed from 0.8 to 0.4 (half the size)
+                        this.zombieModel.scale.set(0.4, 0.4, 0.4);
                         
                         // Position above ground to prevent being submerged
                         // Calculate the model's height
@@ -230,7 +232,7 @@ export class ZombieManager {
                     console.log(`Individual zombie model loaded from ${path}`);
                     
                     const zombieModelInstance = gltf.scene;
-                    zombieModelInstance.scale.set(0.8, 0.8, 0.8);
+                    zombieModelInstance.scale.set(0.4, 0.4, 0.4);
                     
                     // Calculate proper height for positioning
                     const box = new THREE.Box3().setFromObject(zombieModelInstance);

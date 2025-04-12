@@ -130,12 +130,15 @@ export class Controller {
     // Reset moveVector
     this.moveVector.set(0, 0, 0);
     
-    // Add movement based on key states - fix direction mapping
-    // In Three.js, negative Z is "forward" in the default coordinate system
-    if (this.forward) this.moveVector.z = 1; // Move forward (negative Z)
-    if (this.backward) this.moveVector.z = -1; // Move backward (positive Z)
-    if (this.left) this.moveVector.x = 1; // Move left (negative X)
-    if (this.right) this.moveVector.x = -1; // Move right (positive X)
+    // Add movement based on key states - corrected direction mapping
+    // For camera-relative movement, we use a consistent coordinate system where:
+    // Forward = positive Z, Backward = negative Z
+    // Left = negative X, Right = positive X
+    // This will be properly transformed in Player.js based on camera angle
+    if (this.forward) this.moveVector.z = 1;  // Forward (positive Z)
+    if (this.backward) this.moveVector.z = -1; // Backward (negative Z)
+    if (this.left) this.moveVector.x = 1;   // Left (negative X)
+    if (this.right) this.moveVector.x = -1;  // Right (positive X)
     
     // Normalize if we have movement to maintain consistent speed in all directions
     if (this.moveVector.length() > 0) {

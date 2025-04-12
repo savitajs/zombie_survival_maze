@@ -11,7 +11,7 @@ import { HealthManager } from './PlayerHealth/HealthManager.js';
 
 // Create Scene
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(100, window.innerWidth/window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer();
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -65,8 +65,8 @@ let gameState = {
 };
 
 // Camera parameters - adjusted for larger maze
-const THIRD_PERSON_DISTANCE = 5; // Adjusted distance for clear view of cone's base
-const THIRD_PERSON_HEIGHT = 3;   // Lower height to better see the cone's base
+const THIRD_PERSON_DISTANCE = 10; // Adjusted distance for clear view of cone's base
+const THIRD_PERSON_HEIGHT = 8;   // Lower height to better see the cone's base
 const FIRST_PERSON_HEIGHT = 2;   // Height for first-person view
 const CAMERA_CHECK_DISTANCE = 20; // Distance for wall detection
 const FREE_CAMERA_HEIGHT = 100;   // Height for free camera view

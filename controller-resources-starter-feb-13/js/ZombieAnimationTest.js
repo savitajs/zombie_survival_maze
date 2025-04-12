@@ -104,7 +104,8 @@ class ZombieAnimationTest {
         loader.load('./models/low_poly_zombie_game_animation.glb', (gltf) => {
             const model = gltf.scene;
             model.position.set(x, 0, z);
-            model.scale.set(0.8, 0.8, 0.8);
+            // Changed from 0.8 to 0.4 (half the size)
+            model.scale.set(0.4, 0.4, 0.4);
             
             // Add to scene
             this.scene.add(model);
