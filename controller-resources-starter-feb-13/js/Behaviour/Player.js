@@ -2,12 +2,13 @@ import { Character } from './Character.js';
 import { State } from './State.js';
 import * as THREE from 'three';
 import { VectorUtil } from '../Util/VectorUtil.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 export class Player extends Character {
   constructor(color) {
     super(color);
     
-    // Create appropriately sized player model for the larger maze
+    // Create a temporary placeholder until the model loads
     const geometry = new THREE.ConeGeometry(1.5, 2, 5);
     const material = new THREE.MeshPhongMaterial({ 
       color: color,
@@ -15,53 +16,242 @@ export class Player extends Character {
       emissiveIntensity: 0.3,
     });
     this.gameObject = new THREE.Mesh(geometry, material);
-    
-    // Rotate cone so its BASE faces BACKWARD (-Z) and pointy part faces FORWARD (+Z)
-    this.gameObject.rotation.x = Math.PI / 2; // Flip to point along -Z axis
+    this.gameObject.rotation.x = Math.PI / 2;
     
     this.location = this.gameObject.position;
-    this.size = 5; // Match the size with the geometry
+    this.size = 5;
     
     // Movement properties based on path-following implementation
     this.topSpeed = 20;
     this.maxForce = 15;
     this.mass = 1;
     
-    // State management
+    // Animation properties
+    this.mixer = null;
+    this.actions = {};
+    this.currentAnimation = null;
+    this.animationDebug = {
+      lastLogTime: 0,
+      loopCount: 0,
+      durations: {}
+    };
+    
+    // State management with transition tracking
     this.state = new IdleState();
+    this.previousState = null;
+    this.stateTransitionTime = 0;
+    this.movementInputActive = false; // Tracks if movement keys are currently pressed
+    this.wasMoving = false; // Tracks previous movement state
+    
     this.state.enterState(this);
 
     // Add forward direction for camera positioning
-    // The forward vector now points where the POINTY part is facing
     this.forward = new THREE.Vector3(0, 0, 1);
 
     // Health properties
     this.maxHealth = 100;
     this.health = this.maxHealth;
+    
+    // Load the player model
+    this.loadModel();
+  }
+  
+  loadModel() {
+    const loader = new GLTFLoader();
+    
+    // Try both potential paths for the model
+    const modelPaths = ['./public/models/remi.glb', './models/remi.glb'];
+    let currentPathIndex = 0;
+    
+    const tryLoadModel = (pathIndex) => {
+      if (pathIndex >= modelPaths.length) {
+        console.error('Failed to load player model after trying all paths');
+        return;
+      }
+      
+      const path = modelPaths[pathIndex];
+      console.log(`Loading player model from: ${path}`);
+      
+      loader.load(
+        path,
+        (gltf) => {
+          console.log('Player model loaded successfully');
+          console.log('Available animations:', gltf.animations.map(a => a.name));
+          
+          // Store the model
+          const model = gltf.scene;
+          
+          // Calculate appropriate scale
+          const box = new THREE.Box3().setFromObject(model);
+          const size = new THREE.Vector3();
+          box.getSize(size);
+          const scale = 2.5 / Math.max(size.x, size.y, size.z);
+          
+          // Apply scale and position
+          model.scale.set(scale, scale, scale);
+          
+          // Replace the placeholder with the loaded model
+          if (this.gameObject.parent) {
+            const parent = this.gameObject.parent;
+            const position = this.gameObject.position.clone();
+            const rotation = this.gameObject.rotation.clone();
+            
+            parent.remove(this.gameObject);
+            this.gameObject = model;
+            this.gameObject.position.copy(position);
+            this.gameObject.rotation.y = rotation.y;
+            parent.add(this.gameObject);
+          } else {
+            this.gameObject = model;
+          }
+          
+          // Set up animation mixer
+          this.mixer = new THREE.AnimationMixer(model);
+          
+          // Process animations
+          gltf.animations.forEach(clip => {
+            const action = this.mixer.clipAction(clip);
+            this.actions[clip.name] = action;
+            
+            // Store animation durations for debugging
+            this.animationDebug.durations[clip.name] = clip.duration;
+            
+            console.log(`Animation "${clip.name}" prepared, duration: ${clip.duration.toFixed(2)}s`);
+          });
+          
+          // Add animation finished callback
+          this.mixer.addEventListener('loop', (e) => {
+            const clipName = e.action._clip.name;
+            this.animationDebug.loopCount++;
+            console.log(`Animation "${clipName}" completed a loop (${this.animationDebug.loopCount})`);
+          });
+          
+          // Start with the Idle animation
+          if (this.actions['Idle']) {
+            this.playAnimation('Idle');
+          } else {
+            console.warn('Idle animation not found in model');
+          }
+        },
+        (xhr) => {
+          console.log(`${path}: ${(xhr.loaded / xhr.total) * 100}% loaded`);
+        },
+        (error) => {
+          console.error(`Error loading model from ${path}:`, error);
+          // Try next path
+          tryLoadModel(pathIndex + 1);
+        }
+      );
+    };
+    
+    // Start trying the first path
+    tryLoadModel(0);
+  }
+  
+  playAnimation(name, immediate = false) {
+    if (this.currentAnimation === name) return;
+    
+    if (!this.actions || !this.actions[name]) {
+      console.warn(`Animation '${name}' not found for player`);
+      return;
+    }
+    
+    console.log(`Changing player animation to ${name} (duration: ${this.animationDebug.durations[name]?.toFixed(2)}s)`);
+    
+    // Set transition time based on whether this is an immediate transition
+    const transitionTime = immediate ? 0.1 : 0.5;
+    
+    // Fade out current animation if it exists
+    if (this.currentAnimation && this.actions[this.currentAnimation]) {
+      this.actions[this.currentAnimation].fadeOut(transitionTime);
+    }
+    
+    // Fade in new animation
+    this.actions[name].reset().fadeIn(transitionTime).play();
+    this.currentAnimation = name;
+    
+    // Reset animation debug time
+    this.animationDebug.lastLogTime = 0;
+    this.animationDebug.animationTime = 0;
   }
 
   switchState(state) {
+    if (this.state.constructor.name === state.constructor.name) {
+      return; // Don't switch to the same state type
+    }
+    
+    this.previousState = this.state;
     this.state = state;
+    this.stateTransitionTime = 0;
     this.state.enterState(this);
   }
 
   update(deltaTime, bounds, controller) {
-    // Update state
+    // Update animation mixer
+    if (this.mixer) {
+      this.mixer.update(deltaTime);
+      
+      // Log animation time every second
+      if (this.currentAnimation) {
+        this.animationDebug.animationTime += deltaTime;
+        
+        // Only log once per second
+        if (this.animationDebug.animationTime - this.animationDebug.lastLogTime >= 1.0) {
+          const duration = this.animationDebug.durations[this.currentAnimation];
+          const currentTime = this.animationDebug.animationTime % duration;
+          const progress = Math.floor((currentTime / duration) * 100);
+          
+          console.log(`Animation "${this.currentAnimation}": ${currentTime.toFixed(2)}s / ${duration.toFixed(2)}s (${progress}% complete)`);
+          
+          this.animationDebug.lastLogTime = Math.floor(this.animationDebug.animationTime);
+        }
+      }
+    }
+    
+    // Increment state transition time
+    this.stateTransitionTime += deltaTime;
+    
+    // Check health for death state - play Death animation when health is 0
+    if (this.health <= 0 && this.currentAnimation !== 'Death') {
+      this.playAnimation('Death');
+      if (!(this.state instanceof DeathState)) {
+        this.switchState(new DeathState());
+      }
+      // Skip further state processing when dead
+      return;
+    }
+    
+    // Track if we're currently receiving movement input from controller
+    const currentlyMoving = controller && controller.isMoving();
+    
+    // Handle state transitions based on movement input changes
+    if (currentlyMoving !== this.wasMoving) {
+      // Movement state has changed
+      if (currentlyMoving) {
+        // Just started moving
+        if (!(this.state instanceof MovingState)) {
+          this.switchState(new MovingState());
+        }
+      } else {
+        // Just stopped moving
+        if (!(this.state instanceof IdleState)) {
+          this.switchState(new IdleState());
+        }
+      }
+      // Update tracking state
+      this.wasMoving = currentlyMoving;
+    }
+    
+    // Update state behavior
     this.state.updateState(this, controller);
     
     // Apply force from controller input if moving
-    if (controller && controller.isMoving()) {
+    if (currentlyMoving) {
         const moveForce = controller.getMoveForce();
         this.applyForce(moveForce);
-        
-        if (this.state.constructor.name !== 'MovingState') {
-            this.switchState(new MovingState());
-        }
     } else if (this.velocity.length() > 0) {
         const brakeForce = this.applyBrakes();
         this.applyForce(brakeForce);
-    } else if (this.state.constructor.name !== 'IdleState') {
-        this.switchState(new IdleState());
     }
     
     // Update physics
@@ -182,20 +372,22 @@ export class Player extends Character {
     this.acceleration.setLength(0);
   }
 
-  // Get player's forward direction - this points where the POINTY part is facing
+  // Get player's forward direction - this points where the character is facing
   getForwardDirection() {
-    // Return the direction the pointy part is facing
     return this.forward.clone();
   }
 
-  // Get player's backward direction - this points where the BASE is facing
+  // Get player's backward direction
   getBackwardDirection() {
-    // Return the direction the base is facing
     return this.forward.clone().negate();
   }
 
   takeDamage(amount) {
     this.health = Math.max(0, this.health - amount);
+    if (this.health <= 0) {
+      this.playAnimation('Death', true); // Immediate transition to death
+      this.switchState(new DeathState());
+    }
     return this.health;
   }
 
@@ -203,24 +395,53 @@ export class Player extends Character {
     this.health = Math.min(this.maxHealth, this.health + amount);
     return this.health;
   }
+  
+  setColor(color) {
+    // For compatibility with the old Character class
+    // This doesn't affect the GLB model, but prevents errors
+    console.log(`Setting player color to ${color} (visual effect not applied to GLB model)`);
+  }
 }
 
 export class IdleState extends State {
   enterState(player) {
-    // No special action required for idle
+    // Play the idle animation when entering the idle state
+    if (player.actions && player.actions['Idle']) {
+      player.playAnimation('Idle');
+    }
+    console.log("Player state changed to IDLE");
   }
 
   updateState(player, controller) {
-    // The state transition is handled in the Player.update method
+    // Nothing to do here - transitions are handled in Player.update
   }
 }
 
 export class MovingState extends State {
   enterState(player) {
-    // No special action required for moving
+    // Play the Run animation when entering the moving state
+    if (player.actions && player.actions['Run']) {
+      player.playAnimation('Run');
+    }
+    console.log("Player state changed to MOVING");
   }
 
   updateState(player, controller) {
-    // The state transition is handled in the Player.update method
+    // Nothing to do here - transitions are handled in Player.update
+  }
+}
+
+export class DeathState extends State {
+  enterState(player) {
+    // Play the Death animation when entering the death state
+    if (player.actions && player.actions['Death']) {
+      player.playAnimation('Death', true); // Immediate transition
+    }
+    console.log("Player state changed to DEATH");
+  }
+
+  updateState(player, controller) {
+    // In death state, player can't move
+    player.velocity.set(0, 0, 0);
   }
 }
