@@ -70,10 +70,12 @@ export class ZombieManager {
                 // Reduce scale to make zombie smaller relative to environment
                 this.zombieModel.scale.set(0.8, 0.8, 0.8);
                 
-                // Position slightly above ground to show feet
+                // Position above ground to prevent being submerged
+                // Calculate the model's height
                 const box = new THREE.Box3().setFromObject(this.zombieModel);
                 const height = box.max.y - box.min.y;
-                this.zombieModel.position.set(0, (height * 0.1) + 40, 0);
+                // Use half of the model's height to position it properly above the ground
+                this.zombieModel.position.set(0, height, 0);
                 this.zombieModel.rotation.y = Math.PI;
                 
                 console.log('Model loaded with height:', height);
@@ -111,10 +113,12 @@ export class ZombieManager {
                         // Reduce scale to make zombie smaller relative to environment
                         this.zombieModel.scale.set(0.8, 0.8, 0.8);
                         
-                        // Position slightly above ground to show feet
+                        // Position above ground to prevent being submerged
+                        // Calculate the model's height
                         const box = new THREE.Box3().setFromObject(this.zombieModel);
                         const height = box.max.y - box.min.y;
-                        this.zombieModel.position.set(0, (height * 0.1) + 40, 0);
+                        // Use half of the model's height to position it properly above the ground
+                        this.zombieModel.position.set(0, height, 0);
                         this.zombieModel.rotation.y = Math.PI;
                         
                         console.log('Model loaded with height:', height);
@@ -194,7 +198,8 @@ export class ZombieManager {
             const worldPos = this.gameMap.localize(randomNode);
             const box = new THREE.Box3().setFromObject(this.zombieModel);
             const height = box.max.y - box.min.y;
-            worldPos.y = height * 0.1; // Match the height offset from model loading
+            // Position the zombie with half its height as Y value to keep it above ground
+            worldPos.y = height;
             
             return worldPos;
         };
@@ -226,6 +231,12 @@ export class ZombieManager {
                     
                     const zombieModelInstance = gltf.scene;
                     zombieModelInstance.scale.set(0.8, 0.8, 0.8);
+                    
+                    // Calculate proper height for positioning
+                    const box = new THREE.Box3().setFromObject(zombieModelInstance);
+                    const height = box.max.y - box.min.y;
+                    // Position the zombie with half its height as Y value
+                    position.y = height;
                     
                     // Create zombie object
                     const newZombie = {
@@ -480,10 +491,14 @@ export class ZombieManager {
                 }
                 
                 zombie.position.add(zombie.velocity.clone().multiplyScalar(deltaTime));
-                const modelY = zombie.model.position.y || 40; // Use existing Y or default to 40
+                
+                // Calculate the correct Y position based on the zombie model's height
+                const zombieBox = new THREE.Box3().setFromObject(zombie.model);
+                const zombieHeight = zombieBox.max.y - zombieBox.min.y;
+                // Position the zombie with half its height as Y value to keep it above ground
                 zombie.model.position.set(
                     zombie.position.x,
-                    modelY,
+                    zombieHeight,
                     zombie.position.z
                 );
 
