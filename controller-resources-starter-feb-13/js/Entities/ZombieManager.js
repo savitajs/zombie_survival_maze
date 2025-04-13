@@ -334,6 +334,23 @@ export class ZombieManager {
             zombie.actions[zombie.currentAnimation].fadeOut(0.5);
         }
 
+        // For Death animation, set it to play only once
+        if (animationName === 'Death') {
+            zombie.actions[animationName].setLoop(THREE.LoopOnce);
+            zombie.actions[animationName].clampWhenFinished = true; // Stay on last frame
+            
+            // Mark the zombie for removal after animation completes
+            zombie.markedForRemoval = true;
+            
+            // Calculate animation duration to know when to remove the zombie
+            const deathClip = zombie.actions[animationName]._clip;
+            const animationDuration = deathClip ? deathClip.duration : 2; // Default to 2 seconds if duration unknown
+            
+            // Set removal timer
+            zombie.removalTimer = animationDuration;
+            console.log(`Zombie marked for removal in ${animationDuration.toFixed(2)} seconds`);
+        }
+
         // Fade in new animation
         zombie.actions[animationName].reset().fadeIn(0.5).play();
         
@@ -439,8 +456,21 @@ export class ZombieManager {
             if (mixer) mixer.update(deltaTime);
         });
 
+        // Track zombies that need to be removed
+        const zombiesToRemove = [];
+
         // Update all zombies
         this.zombies.forEach(zombie => {
+            // Check if this zombie is marked for removal due to death animation
+            if (zombie.markedForRemoval) {
+                zombie.removalTimer -= deltaTime;
+                if (zombie.removalTimer <= 0) {
+                    // Time to remove this zombie
+                    zombiesToRemove.push(zombie);
+                    return; // Skip further processing for this zombie
+                }
+            }
+
             const path = this.pathFinder.findPathToTarget(zombie.position, playerPosition);
             const stateUpdateResult = zombie.state.update(playerPosition, this.playerAttacking, path, healthManager, deltaTime);
             
@@ -520,6 +550,11 @@ export class ZombieManager {
             }
         });
 
+        // Remove zombies that have finished their death animation
+        if (zombiesToRemove.length > 0) {
+            this.removeZombies(zombiesToRemove);
+        }
+
         // Log positions every 20 seconds (but only if we have zombies)
         if (this.zombies.length > 0) {
             const currentTime = Date.now();
@@ -552,5 +587,29 @@ export class ZombieManager {
         this.pathDebug.clearPath();
         this.stateDebug.cleanup();
         this.mixers = [];
+    }
+
+    removeZombies(zombiesToRemove) {
+        // Clean up animation mixers for removed zombies
+        zombiesToRemove.forEach(zombie => {
+            // Remove from scene
+            this.scene.remove(zombie.model);
+            
+            // Clean up animation mixer
+            if (zombie.animationMixer) {
+                const mixerIndex = this.mixers.indexOf(zombie.animationMixer);
+                if (mixerIndex !== -1) {
+                    this.mixers.splice(mixerIndex, 1);
+                }
+            }
+            
+            // Remove from zombies array
+            const index = this.zombies.indexOf(zombie);
+            if (index !== -1) {
+                this.zombies.splice(index, 1);
+            }
+        });
+        
+        console.log(`${zombiesToRemove.length} zombies removed from the scene`);
     }
 }
