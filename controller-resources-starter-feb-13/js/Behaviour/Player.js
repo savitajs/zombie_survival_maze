@@ -59,17 +59,8 @@ export class Player extends Character {
   loadModel() {
     const loader = new GLTFLoader();
     
-    // Try both potential paths for the model
-    const modelPaths = ['./public/models/remi.glb', './models/remi.glb'];
-    let currentPathIndex = 0;
-    
     const tryLoadModel = (pathIndex) => {
-      if (pathIndex >= modelPaths.length) {
-        console.error('Failed to load player model after trying all paths');
-        return;
-      }
-      
-      const path = modelPaths[pathIndex];
+      const path = './models/remi.glb';
       console.log(`Loading player model from: ${path}`);
       
       loader.load(

@@ -19,10 +19,10 @@ export class MapRenderer {
     
     // Load textures
     this.textures = {
-      wall: new THREE.TextureLoader().load('./public/textures/Rust005_2K-JPG_Color.jpg'),
-      wallNormal: new THREE.TextureLoader().load('./public/textures/Rust005_2K-JPG_Displacement.jpg'),
-      floor: new THREE.TextureLoader().load('./public/textures/Rust005_2K-JPG_Displacement.jpg'),
-      exitWall: new THREE.TextureLoader().load('./public/textures/Rust005_2K-JPG_Displacement.jpg')
+      wall: new THREE.TextureLoader().load('./textures/Rust005_2K-JPG_Color.jpg'),
+      wallNormal: new THREE.TextureLoader().load('./textures/Rust005_2K-JPG_Displacement.jpg'),
+      floor: new THREE.TextureLoader().load('./textures/Rust005_2K-JPG_Displacement.jpg'),
+      exitWall: new THREE.TextureLoader().load('./textures/Rust005_2K-JPG_Displacement.jpg')
     };
     
     // Configure texture repeats based on tile size
