@@ -81,7 +81,7 @@ export class Player extends Character {
           // Store the model
           const model = gltf.scene;
           
-          // Calculate appropriate scale
+          // Calculate appropriate scale and height
           const box = new THREE.Box3().setFromObject(model);
           const size = new THREE.Vector3();
           box.getSize(size);
@@ -90,10 +90,14 @@ export class Player extends Character {
           // Apply scale and position
           model.scale.set(scale, scale, scale);
           
+          // Calculate model height for proper ground placement
+          const height = (box.max.y - box.min.y) * scale / 2;
+          
           // Replace the placeholder with the loaded model
           if (this.gameObject.parent) {
             const parent = this.gameObject.parent;
             const position = this.gameObject.position.clone();
+            position.y = height; // Set correct height above ground
             const rotation = this.gameObject.rotation.clone();
             
             parent.remove(this.gameObject);
@@ -103,6 +107,7 @@ export class Player extends Character {
             parent.add(this.gameObject);
           } else {
             this.gameObject = model;
+            this.gameObject.position.y = height; // Set correct height above ground
           }
           
           // Set up animation mixer
@@ -271,13 +276,15 @@ export class Player extends Character {
     if (this.velocity.length() > this.topSpeed) {
         this.velocity.setLength(this.topSpeed);
     }
-    
+
     if (bounds.gameMap) {
         // Store current position before moving
         const currentPosition = this.location.clone();
+        const currentHeight = this.location.y; // Preserve height
         
         // Calculate next position based on velocity
         const nextPosition = currentPosition.clone().addScaledVector(this.velocity, deltaTime);
+        nextPosition.y = 16; // Maintain height above ground
         
         // Player collision radius (half of the cone's base size)
         const radius = 1.0; // Slightly larger than before for better collision detection

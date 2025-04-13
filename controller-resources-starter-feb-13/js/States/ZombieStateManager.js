@@ -1,16 +1,26 @@
 import { IdleState, ApproachState, AttackState, DeathState } from './ZombieStates.js';
 
 export class ZombieStateManager {
-    constructor(zombie) {
+    constructor(zombie, healthManager) {
         this.zombie = zombie;
+        this.healthManager = healthManager;
         this.currentState = new IdleState();
         this.hitPoints = 5;
         this.attackRange = 30;
         this.detectionRange = 300;
         this.maxChaseDistance = 200;
+        this.damageTimer = 0;
+        this.damageCooldown = 1000; // 1 second cooldown
+        this.damageAmount = 10;
     }
 
-    update(playerPosition, playerAttacking, currentPath) {
+    update(playerPosition, playerAttacking, currentPath, healthManager, deltaTime) {
+        // Update damage timer
+        if (this.damageTimer > 0) {
+            this.damageTimer -= deltaTime * 1000; // Convert to milliseconds
+        }
+        
+        // Check if player is attacking and within range
         if (playerAttacking && this.getPathDistance(currentPath) <= this.attackRange) {
             this.hitPoints--;
             if (this.hitPoints <= 0) {
@@ -19,7 +29,15 @@ export class ZombieStateManager {
             }
         }
 
-        return this.currentState.updateState(this.zombie, playerPosition, currentPath);
+        const stateUpdate = this.currentState.updateState(this.zombie, playerPosition, currentPath);
+
+        // Handle zombie attacking player
+        if (stateUpdate.animation === 'Attack' && this.damageTimer <= 0) {
+            healthManager.damagePlayer(this.damageAmount);
+            this.damageTimer = this.damageCooldown;
+        }
+
+        return stateUpdate;
     }
 
     getPathDistance(path) {

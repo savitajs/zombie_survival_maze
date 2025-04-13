@@ -22,6 +22,7 @@ export class HealthBar {
 
     updateHealth(health) {
         this.currentHealth = health;
+        console.log(`Current Health: ${this.currentHealth}`);
         const healthPercentage = (this.currentHealth / this.maxHealth) * 100;
         this.healthBar.style.width = `${healthPercentage}%`;
     }

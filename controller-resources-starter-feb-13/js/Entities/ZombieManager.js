@@ -8,13 +8,15 @@ import { StateDebug } from '../Debug/StateDebug.js';
 import { ZombieStateManager } from '../States/ZombieStateManager.js';
 
 export class ZombieManager {
-    constructor(scene, gameMap) {
+    constructor(scene, gameMap, healthManager) {
         this.scene = scene;
         this.gameMap = gameMap;
+        this.healthManager = healthManager;
         this.zombies = [];
         this.zombieModel = null;
         this.lastPositionLog = Date.now(); // Add timer for position logging
         this.positionLogInterval = 20000; // 20 seconds in milliseconds
+
 
         // Store the required zombie count for this level
         this.zombieCount = gameMap.getZombieCount();
@@ -294,7 +296,7 @@ export class ZombieManager {
                     }
                     
                     // Create state with the complete zombie object
-                    newZombie.state = new ZombieStateManager(newZombie);
+                    newZombie.state = new ZombieStateManager(newZombie, this.healthManager);
                     newZombie.model.position.copy(position);
                     this.scene.add(newZombie.model);
                     this.zombies.push(newZombie);
@@ -431,7 +433,7 @@ export class ZombieManager {
         return this.seek(zombie, target);
     }
 
-    update(deltaTime, playerPosition) {
+    update(deltaTime, playerPosition, healthManager) {
         // Update all animation mixers
         this.mixers.forEach(mixer => {
             if (mixer) mixer.update(deltaTime);
@@ -440,7 +442,7 @@ export class ZombieManager {
         // Update all zombies
         this.zombies.forEach(zombie => {
             const path = this.pathFinder.findPathToTarget(zombie.position, playerPosition);
-                        const stateUpdateResult = zombie.state.update(playerPosition, this.playerAttacking, path);
+            const stateUpdateResult = zombie.state.update(playerPosition, this.playerAttacking, path, healthManager, deltaTime);
             
             // Update debug displays with path distance - only for the first zombie
             if (zombie === this.zombies[0]) {

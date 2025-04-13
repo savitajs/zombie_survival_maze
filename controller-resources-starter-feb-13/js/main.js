@@ -190,7 +190,7 @@ function loadLevel(levelNumber) {
     scene.add(player.gameObject);
     
     // Create zombie manager
-    zombieManager = new ZombieManager(scene, gameMap);
+    zombieManager = new ZombieManager(scene, gameMap, healthManager);
     
     // Initialize health pack manager
     healthPackManager = new HealthPackManager(scene, gameMap);
@@ -482,7 +482,7 @@ function animate() {
         
         // Update zombies
         if (zombieManager) {
-            zombieManager.update(deltaTime, player.location);
+            zombieManager.update(deltaTime, player.location, healthManager);
         }
         
         // Update health packs and check for pickups

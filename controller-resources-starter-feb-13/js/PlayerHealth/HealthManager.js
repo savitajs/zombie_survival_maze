@@ -7,20 +7,24 @@ export class HealthManager {
     }
 
     getCurrentHealth() {
-        return this.currentHealth;
+        return this.player.health;
     }
 
     getMaxHealth() {
-        return this.maxHealth;
+        return this.player.maxHealth;
     }
 
     healPlayer(amount) {
-        this.currentHealth = Math.min(this.currentHealth + amount, this.maxHealth);
+        //Do not remove this line. May need in future.
+        //this.player.health = Math.min(this.currentHealth + amount, this.maxHealth);
+
+        this.player.health = this.player.maxHealth;
         this.updateHealthBar();
     }
 
     damagePlayer(amount) {
-        this.currentHealth = Math.max(this.currentHealth - amount, 0);
+        this.player.health = Math.max(this.player.health - amount, 0);
+        console.log(`Player damaged! - HealthManger Current Health: ${this.player.health}`);
         this.updateHealthBar();
         if (this.currentHealth === 0) {
             this.player.setColor('red');
@@ -29,6 +33,6 @@ export class HealthManager {
     }
 
     updateHealthBar() {
-        this.healthBar.setHealth(this.currentHealth);
+        this.healthBar.updateHealth(this.player.health);
     }
 }
