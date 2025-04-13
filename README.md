@@ -6,14 +6,15 @@ Zombie Survival Maze is a 3D game where you navigate through procedurally genera
 ## How to Run
 1. Navigate to the `zombie-game` directory
 2. Run `npm install`
-3. Run `npx vite` and open the localhost link that is displayed by npx in the console.
+3. Run `npx vite`
+4. Open the `http://localhost:PORT` link that is displayed by npx in the console.
 
 ## Controls
 - **W, A, S, D**: Move the player (forward, left, backward, right)
 - **Mouse**: Control the camera direction when mouse control is enabled
 - **M**: Toggle mouse camera control
 - **X**: Attack zombies (when close enough)
-- **F**: Toggle free camera mode (for debugging and overview)
+- **P**: Toggle free camera mode (for debugging and overview)
 
 ## Game Features
 - Procedurally generated maze for each level
