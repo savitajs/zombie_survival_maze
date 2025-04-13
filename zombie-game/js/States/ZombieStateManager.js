@@ -10,7 +10,7 @@ export class ZombieStateManager {
         this.maxChaseDistance = 200;
         this.damageTimer = 0;
         this.damageCooldown = 1000; // 1 second cooldown
-        this.damageAmount = 10;
+        this.damageAmount = 5;
     }
 
     update(playerPosition, playerAttacking, currentPath, healthManager, deltaTime) {
