@@ -385,17 +385,6 @@ function init() {
     healthBar = new HealthBar(100);
     healthManager = new HealthManager(player, healthBar);
 
-    // Initialize health pack manager AFTER gameMap is created
-    healthPackManager = new HealthPackManager(scene, gameMap);
-
-    // Create health packs
-    const healthPacks = [];
-    for (let i = 0; i < 3; i++) {
-        const position = getRandomValidPosition(gameMap);
-        const healthPack = new HealthPack(scene, position, i + 1);
-        healthPacks.push(healthPack);
-    }
-
     // Load the first level
     loadLevel(gameState.currentLevel);
     

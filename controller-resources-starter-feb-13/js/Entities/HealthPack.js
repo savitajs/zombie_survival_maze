@@ -17,7 +17,7 @@ export class HealthPack {
                 this.model = gltf.scene;
                 this.model.scale.set(5, 5, 5);
                 this.model.position.copy(this.position);
-                this.model.position.y = 20;  // Height is set to 20 units
+                this.model.position.y = 25;  // Height is set to 20 units
                 this.scene.add(this.model);
                 
                 console.log(`Health Pack ${this.id} loaded at:`, {
