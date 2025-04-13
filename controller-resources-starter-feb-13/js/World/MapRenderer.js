@@ -16,6 +16,25 @@ export class MapRenderer {
     
     // Randomly select a wall boundary and position for the exit
     this.selectRandomExitWall();
+    
+    // Load textures
+    this.textures = {
+      wall: new THREE.TextureLoader().load('./public/textures/Rust005_2K-JPG_Color.jpg'),
+      wallNormal: new THREE.TextureLoader().load('./public/textures/Rust005_2K-JPG_Displacement.jpg'),
+      floor: new THREE.TextureLoader().load('./public/textures/Rust005_2K-JPG_Displacement.jpg'),
+      exitWall: new THREE.TextureLoader().load('./public/textures/Rust005_2K-JPG_Displacement.jpg')
+    };
+    
+    // Configure texture repeats based on tile size
+    Object.values(this.textures).forEach(texture => {
+      texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(1, 1);
+    });
+    
+    // Set floor texture to repeat more based on world size
+    const repeatX = Math.ceil(this.gameMap.worldSize.x / (this.gameMap.tileSize * 2));
+    const repeatZ = Math.ceil(this.gameMap.worldSize.z / (this.gameMap.tileSize * 2));
+    this.textures.floor.repeat.set(repeatX, repeatZ);
   }
   
   // Method to randomly select an exit wall position
@@ -137,10 +156,13 @@ export class MapRenderer {
   createRendering() {
     // Create material and geometry for the ground
     let groundMaterial = new THREE.MeshStandardMaterial({ 
-      color: 0xa0a0a0,  // Light gray instead of black
+      map: this.textures.floor,
       roughness: 0.8,
-      metalness: 0.2
+      metalness: 0.2,
+      color: 0xcccccc, // Slight tint to make the texture look worn
+      envMapIntensity: 0.5 // Less reflective for worn look
     });
+    
     let groundGeometry = new THREE.BoxGeometry(
       this.gameMap.worldSize.x, 
       this.gameMap.tileSize, 
@@ -153,13 +175,17 @@ export class MapRenderer {
 
     // Prepare material for the walls and exit
     let wallMaterial = new THREE.MeshStandardMaterial({ 
-      color: 0x606060,  // Medium gray instead of black
+      map: this.textures.wall,
+      normalMap: this.textures.wallNormal, // Add normal map for more detail
+      color: 0xf0f0f0,  // Slightly off-white for science facility walls
       roughness: 0.7,
-      metalness: 0.3
+      metalness: 0.3,
+      bumpScale: 0.1 // Subtle bump effect
     });
+    
     let exitMaterial = new THREE.MeshStandardMaterial({ 
-      color: 'green',
-      emissive: 'green',
+      map: this.textures.exitWall,
+      emissive: 0x00ff00,
       emissiveIntensity: 0.5, // Increased intensity for better visibility
       transparent: true,      // Make slightly transparent 
       opacity: 0.9            // Slight transparency helps distinguish it
