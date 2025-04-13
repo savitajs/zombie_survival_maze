@@ -191,7 +191,28 @@ export class Player extends Character {
     this.state.enterState(this);
   }
 
-  update(deltaTime, bounds, controller) {
+  update(deltaTime, bounds, controller, cameraAngle) {
+
+    if (controller.isMoving()) {
+      const moveForce = controller.getMoveForce();
+      
+      // Transform movement relative to camera
+      const transformedForce = new THREE.Vector3();
+      transformedForce.x = moveForce.x * Math.cos(cameraAngle) + moveForce.z * Math.sin(cameraAngle);
+      transformedForce.z = -moveForce.x * Math.sin(cameraAngle) + moveForce.z * Math.cos(cameraAngle);
+      transformedForce.y = 0;
+      
+      this.applyForce(transformedForce);
+      
+      // Make player face movement direction
+      if (transformedForce.length() > 0.1) {
+          const targetAngle = Math.atan2(transformedForce.x, transformedForce.z);
+          this.gameObject.rotation.y = targetAngle;
+      }
+    }else{
+      //Immediately stop when no movement input is received
+      this.velocity.set(0, 0, 0);
+    }
     // Update animation mixer
     if (this.mixer) {
       this.mixer.update(deltaTime);
@@ -251,25 +272,37 @@ export class Player extends Character {
     this.state.updateState(this, controller);
     
     // Apply force from controller input if moving
-    if (currentlyMoving) {
-        const moveForce = controller.getMoveForce();
+    // if (currentlyMoving) {
+    //     const moveForce = controller.getMoveForce();
+    //     const cameraAngle = Math.atan2(
+    //         controller.camera.position.x - this.location.x,
+    //         controller.camera.position.z - this.location.z
+    //     );
+
+    //     // Transform the movement force based on camera angle
+    //     const transformedForce = new THREE.Vector3();
+    //     transformedForce.x = moveForce.x * Math.cos(cameraAngle) - moveForce.z * Math.sin(cameraAngle);
+    //     transformedForce.z = moveForce.x * Math.sin(cameraAngle) + moveForce.z * Math.cos(cameraAngle);
+    //     transformedForce.y = 0;
+
+    //     this.applyForce(transformedForce);
         
-        // Transform the movement force based on camera angle
-        // This makes movement relative to where the player is facing
-        const transformedForce = new THREE.Vector3();
-        const playerAngle = this.gameObject.rotation.y;
-        
-        // Apply rotation transform to make movement relative to player's facing direction
-        // Using standard rotation matrix for 2D rotation around Y axis
-        transformedForce.x = moveForce.x * Math.cos(playerAngle) - moveForce.z * Math.sin(playerAngle);
-        transformedForce.z = moveForce.x * Math.sin(playerAngle) + moveForce.z * Math.cos(playerAngle);
-        transformedForce.y = 0;
-        
-        this.applyForce(transformedForce);
-    } else {
-        // Immediately stop when no movement input is received
-        this.velocity.set(0, 0, 0);
-    }
+    //     // Update player rotation to face movement direction
+    //     if (transformedForce.length() > 0.1) {
+    //         const targetAngle = Math.atan2(transformedForce.x, transformedForce.z);
+    //         this.gameObject.rotation.y = targetAngle;
+            
+    //         // Update forward vector for camera positioning
+    //         this.forward.set(
+    //             Math.sin(targetAngle),
+    //             0,
+    //             Math.cos(targetAngle)
+    //         ).normalize();
+    //     }
+    // } else {
+    //     // Immediately stop when no movement input is received
+    //     this.velocity.set(0, 0, 0);
+    // }
     
     // Update physics
     this.velocity.addScaledVector(this.acceleration, deltaTime);

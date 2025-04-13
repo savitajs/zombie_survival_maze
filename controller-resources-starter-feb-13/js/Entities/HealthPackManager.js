@@ -3,13 +3,14 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { HealthPack } from './HealthPack.js';
 
 export class HealthPackManager {
-    constructor(scene, gameMap) {
+    constructor(scene, gameMap, healthManager) {
         if (!scene || !gameMap) {
             console.error('HealthPackManager: scene or gameMap is undefined');
             return;
         }
         this.scene = scene;
         this.gameMap = gameMap;
+        this.healthManager = healthManager;
         this.healthPacks = [];
         this.spawnHealthPacks(3); // Spawn 3 health packs
     }
@@ -52,14 +53,17 @@ export class HealthPackManager {
         return worldPos;
     }
 
-    update(playerPosition, currentHealth, maxHealth) {
-        const PICKUP_RADIUS = 3;
+    update(playerPosition, currentHealth, healthManager) {
+        const PICKUP_RADIUS = 10;
 
         for (const pack of this.healthPacks) {
             if (!pack.used) {
+                
                 const distance = pack.position.distanceTo(playerPosition);
                 // Only collect health pack if player is not at full health
-                if (distance < PICKUP_RADIUS && currentHealth < maxHealth) {
+                if (distance < PICKUP_RADIUS && currentHealth < 100) {
+                    console.log("Update of the HealthPackManager is called!");
+                    healthManager.healPlayer();
                     return pack.collect();
                 }
             }

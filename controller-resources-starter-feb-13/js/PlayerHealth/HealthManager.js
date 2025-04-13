@@ -14,11 +14,13 @@ export class HealthManager {
         return this.player.maxHealth;
     }
 
-    healPlayer(amount) {
+    healPlayer() {
         //Do not remove this line. May need in future.
         //this.player.health = Math.min(this.currentHealth + amount, this.maxHealth);
+        
 
         this.player.health = this.player.maxHealth;
+        console.log(`Player healed! - HealthManager Current Health: ${this.player.health}`);
         this.updateHealthBar();
     }
 

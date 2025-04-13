@@ -39,6 +39,14 @@ export class Controller {
     this.mouseControlEnabled = true;
     this.rightMouseDown = false;
 
+    // Debug flag for movement
+    this.debugMovement = true;
+    this.lastDebugTime = 0;  // To prevent too frequent logging
+
+    // Camera direction vectors
+    this.cameraForward = new THREE.Vector3();
+    this.cameraRight = new THREE.Vector3();
+
     // Set up event listeners
     this.doc.addEventListener('keydown', this.handleEvent.bind(this));
     this.doc.addEventListener('keyup', this.handleEvent.bind(this));
@@ -126,25 +134,73 @@ export class Controller {
     }
   }
   
+  updateCameraVectors() {
+    // Update camera direction vectors
+    this.cameraForward.set(0, 0, -1);
+    this.cameraRight.set(1, 0, 0);
+    
+    // Apply camera rotation
+    this.cameraForward.applyQuaternion(this.camera.quaternion);
+    this.cameraRight.applyQuaternion(this.camera.quaternion);
+    
+    // Keep movement in XZ plane
+    this.cameraForward.y = 0;
+    this.cameraRight.y = 0;
+    
+    // Normalize the vectors
+    this.cameraForward.normalize();
+    this.cameraRight.normalize();
+  }
+
   updateMoveVector() {
-    // Reset moveVector
     this.moveVector.set(0, 0, 0);
     
-    // Add movement based on key states - corrected direction mapping
-    // For camera-relative movement, we use a consistent coordinate system where:
-    // Forward = positive Z, Backward = negative Z
-    // Left = negative X, Right = positive X
-    // This will be properly transformed in Player.js based on camera angle
-    if (this.forward) this.moveVector.z = 1;  // Forward (positive Z)
-    if (this.backward) this.moveVector.z = -1; // Backward (negative Z)
-    if (this.left) this.moveVector.x = 1;   // Left (negative X)
-    if (this.right) this.moveVector.x = -1;  // Right (positive X)
-    
-    // Normalize if we have movement to maintain consistent speed in all directions
+    if (this.forward || this.backward || this.left || this.right) {
+      // Get real-time camera direction
+      const cameraDirection = new THREE.Vector3();
+      this.camera.getWorldDirection(cameraDirection);
+      
+      // Project onto XZ plane and normalize for ground movement
+      cameraDirection.y = 0;
+      cameraDirection.normalize();
+      
+      // Get right vector perpendicular to camera direction
+      const right = new THREE.Vector3(-cameraDirection.z, 0, cameraDirection.x);
+
+      // Log camera orientation for debugging
+      if (this.debugMovement) {
+        console.log('[CAMERA_LIVE] Camera orientation:', {
+          camera_pos: this.camera.position,
+          camera_direction: cameraDirection,
+          intended_movement: {
+            forward: this.forward,
+            right: this.right,
+            backward: this.backward,
+            left: this.left
+          }
+        });
+      }
+
+      // Combine movements based on camera orientation
+      // if (this.forward) this.moveVector.add(cameraDirection);
+      // if (this.backward) this.moveVector.sub(cameraDirection);
+      // if (this.right) this.moveVector.add(right);
+      // if (this.left) this.moveVector.sub(right);
+
+      if (this.forward) this.moveVector.z = -1;  // Forward
+      if (this.backward) this.moveVector.z = 1;  // Backward
+      if (this.left) this.moveVector.x = -1;     // Left
+      if (this.right) this.moveVector.x = 1;     // Right
+
+      // Normalize for consistent speed in diagonal movement
+      if (this.moveVector.length() > 0) {
+        this.moveVector.normalize();
+      }
+    }
+
+    // Normalize and apply force
     if (this.moveVector.length() > 0) {
       this.moveVector.normalize();
-      
-      // Calculate the force to apply based on the movement direction
       this.moveForce.copy(this.moveVector).multiplyScalar(this.forceMultiplier);
     } else {
       this.moveForce.set(0, 0, 0);
@@ -153,6 +209,13 @@ export class Controller {
   
   // Get the force to apply for movement
   getMoveForce() {
+    if (this.debugMovement && this.moveForce.length() > 0) {
+      console.log('Final Force:', {
+        x: this.moveForce.x.toFixed(2),
+        z: this.moveForce.z.toFixed(2),
+        magnitude: this.moveForce.length().toFixed(2)
+      });
+    }
     return this.moveForce.clone();
   }
   

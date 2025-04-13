@@ -464,7 +464,12 @@ function animate() {
     
     // Update player using the controller - now using force-based movement
     if (player && controller && !gameState.gameOver && !gameState.transitioning) {
-        player.update(deltaTime, { ...gameMap.bounds, gameMap }, controller);
+        // Update camera first
+        updateCamera(deltaTime);
+        
+        // Then update movement based on new camera orientation
+        controller.updateMoveVector();
+        player.update(deltaTime, { ...gameMap.bounds, gameMap }, controller, cameraAngle);
         
         // Update free camera controls if needed
         if (cameraMode === 'free') {
@@ -486,13 +491,8 @@ function animate() {
         }
         
         // Update health packs and check for pickups
-        if (healthPackManager.update(player.location, healthManager.getCurrentHealth(), healthManager.getMaxHealth())) {
-            healthManager.healPlayer(healthManager.getMaxHealth());
-        }
+        healthPackManager.update(player.location, player.health, healthManager);
     }
-    
-    // Update camera
-    updateCamera(deltaTime);
     
     // Update status display
     updateStatusDisplay();
