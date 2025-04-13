@@ -65,7 +65,7 @@ let gameState = {
 };
 
 // Camera parameters - adjusted for larger maze
-const THIRD_PERSON_DISTANCE = 10; // Adjusted distance for clear view of cone's base
+const THIRD_PERSON_DISTANCE = 20; // Adjusted distance for clear view of cone's base
 const THIRD_PERSON_HEIGHT = 8;   // Lower height to better see the cone's base
 const FIRST_PERSON_HEIGHT = 2;   // Height for first-person view
 const CAMERA_CHECK_DISTANCE = 20; // Distance for wall detection

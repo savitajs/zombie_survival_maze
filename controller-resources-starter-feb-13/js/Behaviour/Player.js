@@ -85,7 +85,7 @@ export class Player extends Character {
           const box = new THREE.Box3().setFromObject(model);
           const size = new THREE.Vector3();
           box.getSize(size);
-          const scale = 9.5 / Math.max(size.x, size.y, size.z);
+          const scale = 15 / Math.max(size.x, size.y, size.z);
           
           // Apply scale and position
           model.scale.set(scale, scale, scale);
