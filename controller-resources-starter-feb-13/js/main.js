@@ -189,6 +189,17 @@ function loadLevel(levelNumber) {
     player.location.copy(startPos);
     scene.add(player.gameObject);
     
+    // Reset health bar to full
+    if (healthBar) {
+        healthBar.updateHealth(player.maxHealth);
+    }
+    
+    // Make sure HealthManager has the new player reference
+    if (healthManager) {
+        healthManager.player = player;
+        healthManager.updateHealthBar(); // Update the health bar display
+    }
+    
     // Create zombie manager
     zombieManager = new ZombieManager(scene, gameMap, healthManager);
     
@@ -265,6 +276,36 @@ function showGameCompleteMessage() {
     messageElement.style.display = 'block';
     gameState.gameOver = true;
 }
+
+// Game over UI and functionality
+function showGameOverMessage() {
+  gameState.gameOver = true;
+  gameState.transitionTimer = 10; // 10-second countdown
+  
+  // Show game over message
+  messageElement.innerHTML = `
+    <h2>Game Over!</h2>
+    <p>Reloading level in <span id="countdown">10</span> seconds...</p>
+  `;
+  messageElement.style.backgroundColor = 'rgba(150, 0, 0, 0.8)';
+  messageElement.style.display = 'block';
+  
+  // Start countdown
+  updateGameOverCountdown();
+}
+
+// Update the game over countdown
+function updateGameOverCountdown() {
+  const countdownElement = document.getElementById('countdown');
+  if (countdownElement) {
+    countdownElement.textContent = Math.ceil(gameState.transitionTimer);
+  }
+}
+
+// Register game over callback
+window.gameOverCallback = function() {
+  showGameOverMessage();
+};
 
 // Update level display
 function updateLevelDisplay() {
@@ -460,6 +501,20 @@ function animate() {
     // Handle level transitions
     if (gameState.transitioning) {
         updateTransition(deltaTime);
+    }
+    
+    // Handle game over state
+    if (gameState.gameOver) {
+        // Update game over countdown
+        gameState.transitionTimer -= deltaTime;
+        updateGameOverCountdown();
+        
+        // When countdown reaches zero, reload the current level
+        if (gameState.transitionTimer <= 0) {
+            gameState.gameOver = false;
+            messageElement.style.display = 'none';
+            loadLevel(gameState.currentLevel); // Reload the current level
+        }
     }
     
     // Update player using the controller - now using force-based movement

@@ -25,12 +25,14 @@ export class HealthManager {
     }
 
     damagePlayer(amount) {
-        this.player.health = Math.max(this.player.health - amount, 0);
-        console.log(`Player damaged! - HealthManger Current Health: ${this.player.health}`);
+        // Use player's takeDamage method instead of directly setting health
+        this.player.takeDamage(amount);
+        console.log(`Player damaged! - HealthManager Current Health: ${this.player.health}`);
         this.updateHealthBar();
-        if (this.currentHealth === 0) {
-            this.player.setColor('red');
-            this.player.stop();
+        
+        // Let the player object handle death state
+        if (this.player.health <= 0) {
+            console.log("Player health at 0 - should trigger death state");
         }
     }
 

@@ -238,10 +238,25 @@ export class Player extends Character {
     this.stateTransitionTime += deltaTime;
     
     // Check health for death state - play Death animation when health is 0
-    if (this.health <= 0 && this.currentAnimation !== 'Death') {
-      this.playAnimation('Death');
+    if (this.health <= 0) {
+      console.log("Player health is zero - triggering death state and animation");
+      
+      // Make sure Death animation only plays once and is set up correctly
+      if (this.actions && this.actions['Death']) {
+        this.actions['Death'].setLoop(THREE.LoopOnce);
+        this.actions['Death'].clampWhenFinished = true;
+      }
+      
+      if (this.currentAnimation !== 'Death') {
+        this.playAnimation('Death', true); // Force immediate transition to death
+      }
+      
       if (!(this.state instanceof DeathState)) {
         this.switchState(new DeathState());
+        // Trigger game over event
+        if (window.gameOverCallback) {
+          window.gameOverCallback();
+        }
       }
       // Skip further state processing when dead
       return;
@@ -437,8 +452,18 @@ export class Player extends Character {
   takeDamage(amount) {
     this.health = Math.max(0, this.health - amount);
     if (this.health <= 0) {
+      // Play Death animation once (no looping)
+      if (this.actions && this.actions['Death']) {
+        this.actions['Death'].setLoop(THREE.LoopOnce);
+        this.actions['Death'].clampWhenFinished = true; // Stops at the last frame
+      }
       this.playAnimation('Death', true); // Immediate transition to death
       this.switchState(new DeathState());
+      
+      // Trigger game over event
+      if (window.gameOverCallback) {
+        window.gameOverCallback();
+      }
     }
     return this.health;
   }
