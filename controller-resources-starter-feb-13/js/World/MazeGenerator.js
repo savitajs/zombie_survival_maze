@@ -84,12 +84,5 @@ export class MazeGenerator {
 
 
   }
-  
-
 
 }
-
-
-
-
-
