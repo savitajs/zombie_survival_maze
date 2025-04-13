@@ -21,8 +21,15 @@ export class ZombieStateManager {
         
         // Check if player is attacking and within range
         if (playerAttacking && this.getPathDistance(currentPath) <= this.attackRange) {
+            // Reduce hit points
             this.zombie.hitPoints = this.zombie.hitPoints - 1;
             console.log("Hitpoints left: " + this.zombie.hitPoints);
+            
+            // Update health bar if it exists
+            if (this.zombie.healthBar) {
+                this.zombie.healthBar.updateHealth(this.zombie.hitPoints);
+            }
+            
             if (this.zombie.hitPoints <= 0) {
                 this.currentState = new DeathState();
                 return this.currentState.enterState(this.zombie);

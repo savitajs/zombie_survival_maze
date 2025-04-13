@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { Player } from './Behaviour/Player.js';
 import { Controller } from './Behaviour/Controller.js';
 import { GameMap } from './World/GameMap.js';
@@ -15,6 +16,17 @@ const camera = new THREE.PerspectiveCamera(100, window.innerWidth/window.innerHe
 const renderer = new THREE.WebGLRenderer();
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+// Expose camera to global scope for health bars
+window.camera = camera;
+
+// Create CSS2D renderer for labels
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(window.innerWidth, window.innerHeight);
+labelRenderer.domElement.style.position = 'absolute';
+labelRenderer.domElement.style.top = '0px';
+labelRenderer.domElement.style.pointerEvents = 'none';
+document.body.appendChild(labelRenderer.domElement);
 
 // Create lighting
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
@@ -151,6 +163,7 @@ function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    labelRenderer.setSize(window.innerWidth, window.innerHeight);
 }
 
 // Cleanup current level objects
@@ -569,6 +582,7 @@ function animate() {
     animateExitWall(deltaTime);
     
     renderer.render(scene, camera);
+    labelRenderer.render(scene, camera);
 }
 
 // Animate the exit wall to make it more noticeable

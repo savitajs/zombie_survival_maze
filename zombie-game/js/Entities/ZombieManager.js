@@ -6,6 +6,7 @@ import { PathFinder } from '../Pathfinding/PathFinder.js';
 import { PathDebug } from '../Debug/PathDebug.js';
 import { StateDebug } from '../Debug/StateDebug.js';
 import { ZombieStateManager } from '../States/ZombieStateManager.js';
+import { ZombieHealthBar } from './ZombieHealthBar.js';
 
 export class ZombieManager {
     constructor(scene, gameMap, healthManager) {
@@ -243,7 +244,8 @@ export class ZombieManager {
                         currentAnimation: null,
                         actions: {}, // Animation actions for this specific zombie
                         gltf: gltf, // Store the entire gltf object
-                        hitPoints: 200 //Points given to each Zombie to keep track of zombie life/death
+                        hitPoints: 200, //Points given to each Zombie to keep track of zombie life/death
+                        maxHitPoints: 200 // Store the max hit points for health bar calculation
                     };
                     
                     // Set up animation mixer for this specific zombie instance
@@ -292,6 +294,10 @@ export class ZombieManager {
                     newZombie.state = new ZombieStateManager(newZombie, this.healthManager);
                     newZombie.model.position.copy(position);
                     this.scene.add(newZombie.model);
+                    
+                    // Create health bar for this zombie
+                    newZombie.healthBar = new ZombieHealthBar(newZombie.maxHitPoints, this.scene, newZombie);
+                    
                     this.zombies.push(newZombie);
                     
                     // Log success
@@ -586,6 +592,11 @@ export class ZombieManager {
                     );
                     zombie.model.lookAt(targetRotation);
                 }
+
+                // Update the health bar position
+                if (zombie.healthBar) {
+                    zombie.healthBar.update();
+                }
             }
         });
 
@@ -633,6 +644,11 @@ export class ZombieManager {
         zombiesToRemove.forEach(zombie => {
             // Remove from scene
             this.scene.remove(zombie.model);
+            
+            // Clean up health bar
+            if (zombie.healthBar) {
+                zombie.healthBar.remove();
+            }
             
             // Clean up animation mixer
             if (zombie.animationMixer) {
