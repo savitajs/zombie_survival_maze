@@ -36,6 +36,10 @@ export class Player extends Character {
       durations: {}
     };
     
+    // Attack animation properties
+    this.isAttacking = false;
+    this.attackCooldown = 0;
+    
     // State management with transition tracking
     this.state = new IdleState();
     this.previousState = null;
@@ -67,7 +71,7 @@ export class Player extends Character {
         path,
         (gltf) => {
           console.log('Player model loaded successfully');
-          console.log('Available animations:', gltf.animations.map(a => a.name));
+          console.log('Available animations for Player:', gltf.animations.map(a => a.name));
           
           // Store the model
           const model = gltf.scene;
@@ -95,10 +99,17 @@ export class Player extends Character {
             this.gameObject = model;
             this.gameObject.position.copy(position);
             this.gameObject.rotation.y = rotation.y;
+            
+            // Store player reference for animation callbacks
+            this.gameObject.userData.player = this;
+            
             parent.add(this.gameObject);
           } else {
             this.gameObject = model;
             this.gameObject.position.y = height; // Set correct height above ground
+            
+            // Store player reference for animation callbacks
+            this.gameObject.userData.player = this;
           }
           
           // Set up animation mixer
@@ -183,6 +194,17 @@ export class Player extends Character {
   }
 
   update(deltaTime, bounds, controller, cameraAngle) {
+    // Update attack cooldown
+    if (this.attackCooldown > 0) {
+      this.attackCooldown -= deltaTime;
+    }
+
+    // Handle attack key press
+    if (controller.attack && !this.isAttacking && this.attackCooldown <= 0) {
+      this.isAttacking = true;
+      this.attackCooldown = 1.0; // 1 second cooldown
+      this.switchState(new AttackState());
+    }
 
     if (controller.isMoving()) {
       const moveForce = controller.getMoveForce();
@@ -511,5 +533,47 @@ export class DeathState extends State {
   updateState(player, controller) {
     // In death state, player can't move
     player.velocity.set(0, 0, 0);
+  }
+}
+
+export class AttackState extends State {
+  enterState(player) {
+    // Play the Attack animation when entering the attack state
+    if (player.actions && player.actions['Attack']) {
+      // Set attack animation to play only once
+      player.actions['Attack'].setLoop(THREE.LoopOnce);
+      player.actions['Attack'].clampWhenFinished = false;
+      
+      // Set up the event listener for when the animation completes
+      player.mixer.addEventListener('finished', this.onAttackComplete.bind(this));
+      
+      // Play the animation
+      player.playAnimation('Attack', true); // Immediate transition to attack
+    }
+    console.log("Player state changed to ATTACK");
+  }
+
+  updateState(player, controller) {
+    // During attack, player shouldn't move
+    player.velocity.set(0, 0, 0);
+  }
+  
+  onAttackComplete(event) {
+    // This will be called when the attack animation finishes
+    // Get the player from the event's mixer's root object
+    const player = event.target.getRoot().userData.player;
+    
+    // Remove the event listener to avoid memory leaks
+    player.mixer.removeEventListener('finished', this.onAttackComplete);
+    
+    // Clear attacking flag
+    player.isAttacking = false;
+    
+    // Return to previous state (idle or moving)
+    if (player.wasMoving) {
+      player.switchState(new MovingState());
+    } else {
+      player.switchState(new IdleState());
+    }
   }
 }

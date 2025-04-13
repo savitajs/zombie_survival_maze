@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { ZombieBaseState } from './ZombieBaseState.js';
 
+// Define attack range directly instead of using zombie.attackRange
+const attackRange = 20.0; // Adjust this value as needed
+
 export class IdleState extends ZombieBaseState {
     enterState(zombie) {
         console.log("ZombieStates.js: State changed to IDLE");
@@ -10,6 +13,7 @@ export class IdleState extends ZombieBaseState {
     updateState(zombie, playerPosition, currentPath) {
         const pathDistance = this.getPathDistance(currentPath);
         if (pathDistance <= zombie.state.detectionRange) {
+
             zombie.state.currentState = new ApproachState();
             return zombie.state.currentState.enterState(zombie);
         }
@@ -31,12 +35,23 @@ export class ApproachState extends ZombieBaseState {
 
     updateState(zombie, playerPosition, currentPath) {
         const pathDistance = this.getPathDistance(currentPath);
+        const zombiePosition = zombie.position;
         
-        if (pathDistance <= zombie.attackRange || !pathDistance) {
+        // Calculate distance using only X and Z coordinates (ignoring height)
+        const xDiff = zombiePosition.x - playerPosition.x;
+        const zDiff = zombiePosition.z - playerPosition.z;
+        const xzDistance = Math.sqrt(xDiff * xDiff + zDiff * zDiff);
+        
+        
+        
+        if (xzDistance <= attackRange) {
+            console.log("ZombieStates.js: Player detected within attack range.");
+            console.log("XZ Distance: " + xzDistance);
+            console.log("ZombieStates.js: Changing state to ATTACK.");
             return new AttackState().enterState(zombie);
         }
 
-        if (pathDistance > zombie.state.maxChaseDistance) {
+        if (xzDistance > zombie.state.maxChaseDistance) {
             return new IdleState().enterState(zombie);
         }
 
@@ -57,9 +72,19 @@ export class AttackState extends ZombieBaseState {
 
     updateState(zombie, playerPosition, currentPath) {
         const pathDistance = this.getPathDistance(currentPath);
+        const zombiePosition = zombie.position;
         
-        if (pathDistance > zombie.attackRange) {
+        // Calculate distance using only X and Z coordinates (ignoring height)
+        const xDiff = zombiePosition.x - playerPosition.x;
+        const zDiff = zombiePosition.z - playerPosition.z;
+        const xzDistance = Math.sqrt(xDiff * xDiff + zDiff * zDiff);
+        
+        if (xzDistance > zombie.attackRange) {
             return new ApproachState().enterState(zombie);
+        }
+
+        if(zombie.hitPoints <= 0 && xzDistance <= zombie.attackRange) {
+            return new DeathState().enterState(zombie);
         }
 
         return {

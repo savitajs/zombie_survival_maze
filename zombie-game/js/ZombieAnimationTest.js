@@ -73,12 +73,10 @@ class ZombieAnimationTest {
             './models/parasite_zombie.glb',
             (gltf) => {
                 console.log('Model loaded successfully!');
-                console.log('Available animations:', gltf.animations.map(a => a.name));
                 
                 // Store animation clips
                 gltf.animations.forEach(clip => {
                     this.animationClips[clip.name] = clip;
-                    console.log(`Animation clip stored: ${clip.name}, duration: ${clip.duration}s`);
                 });
                 
                 // Create multiple zombies for testing
@@ -142,7 +140,6 @@ class ZombieAnimationTest {
                 currentAnimation: null
             });
             
-            console.log(`Created zombie "${label}" with ${Object.keys(actions).length} animations`);
         });
     }
     
@@ -158,7 +155,6 @@ class ZombieAnimationTest {
         if (!zombie.actions[animationName]) {
             console.warn(`Animation "${animationName}" not found for zombie ${zombie.label}`);
             const availableAnims = Object.keys(zombie.actions).join(', ');
-            console.log(`Available animations: ${availableAnims}`);
             return;
         }
         
@@ -172,7 +168,6 @@ class ZombieAnimationTest {
         zombie.currentAnimation = animationName;
         this.currentAnimations[zombieIndex] = animationName;
         
-        console.log(`Playing "${animationName}" on zombie "${zombie.label}"`);
     }
     
     updateLabels() {

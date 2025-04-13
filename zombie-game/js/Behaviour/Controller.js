@@ -19,6 +19,7 @@ export class Controller {
     this.right = false;
     this.forward = false;
     this.backward = false;
+    this.attack = false;  // New attack button state
     
     // Camera control keys
     this.cameraPanLeft = false;
@@ -71,6 +72,7 @@ export class Controller {
       else if (event.code === 'KeyS' || event.code === 'ArrowDown') { this.backward = true; }
       else if (event.code === 'KeyA' || event.code === 'ArrowLeft') { this.left = true; }
       else if (event.code === 'KeyD' || event.code === 'ArrowRight') { this.right = true; }
+      else if (event.code === 'KeyX') { this.attack = true; } // Attack key pressed
       
       // Camera control keys
       else if (event.code === 'KeyP') { this.toggleCameraMode = true; }
@@ -93,6 +95,7 @@ export class Controller {
       else if (event.code === 'KeyS' || event.code === 'ArrowDown') { this.backward = false; }
       else if (event.code === 'KeyA' || event.code === 'ArrowLeft') { this.left = false; }
       else if (event.code === 'KeyD' || event.code === 'ArrowRight') { this.right = false; }
+      else if (event.code === 'KeyX') { this.attack = false; } // Attack key released
       
       // Camera control keys - these are one-shot events, handled elsewhere
       

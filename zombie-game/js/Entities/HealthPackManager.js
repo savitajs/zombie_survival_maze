@@ -3,7 +3,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { HealthPack } from './HealthPack.js';
 
 export class HealthPackManager {
-    constructor(scene, gameMap, healthManager) {
+    constructor(scene, gameMap, healthManager, numberOfHealthPacks) {
         if (!scene || !gameMap) {
             console.error('HealthPackManager: scene or gameMap is undefined');
             return;
@@ -12,7 +12,7 @@ export class HealthPackManager {
         this.gameMap = gameMap;
         this.healthManager = healthManager;
         this.healthPacks = [];
-        this.spawnHealthPacks(3, 'HealthPackManagerConstructor'); // Spawn 3 health packs
+        this.spawnHealthPacks(numberOfHealthPacks, 'HealthPackManagerConstructor'); // Spawn 3 health packs
 
         // Add debug display
         this.debugElement = document.createElement('div');
@@ -94,7 +94,7 @@ export class HealthPackManager {
     }
 
     cleanup() {
-        this.healthPacks.forEach(pack => pack.cleanup());
+        this.healthPacks.forEach(pack => pack.remove());
         this.healthPacks = [];
         if (this.debugElement && this.debugElement.parentNode) {
             this.debugElement.parentNode.removeChild(this.debugElement);

@@ -164,6 +164,10 @@ function cleanupLevel() {
     if (player && player.gameObject) {
         scene.remove(player.gameObject);
     }
+
+    if(healthPackManager){
+        healthPackManager.cleanup(); // Cleanup health packs
+    }
     
     // Cleanup zombie manager
     if (zombieManager) {
@@ -185,7 +189,6 @@ function loadLevel(levelNumber) {
     // Create player
     player = new Player(new THREE.Color(0x00ff00));
     const startPos = getRandomMazePosition(gameMap);
-    console.log('Start Position:', startPos);
     player.location.copy(startPos);
     scene.add(player.gameObject);
     
@@ -204,7 +207,7 @@ function loadLevel(levelNumber) {
     zombieManager = new ZombieManager(scene, gameMap, healthManager);
     
     // Initialize health pack manager
-    healthPackManager = new HealthPackManager(scene, gameMap);
+    healthPackManager = new HealthPackManager(scene, gameMap, healthManager, levelNumber + 2);
     
     // Reset game state
     gameState.escaped = false;
@@ -249,7 +252,16 @@ function updateTransition(deltaTime) {
     
     // Update transition message with countdown
     const secondsRemaining = Math.ceil(gameState.transitionTimer);
-    if (gameState.currentLevel < gameState.maxLevel) {
+    
+    if (gameState.currentLevel === gameState.maxLevel) {
+        // Last level completed - update game complete message
+        messageElement.innerHTML = `
+            <h2>Congratulations!</h2>
+            <p>You've completed all ${gameState.maxLevel} levels!</p>
+            <p>Starting a new game in ${secondsRemaining} seconds...</p>
+        `;
+    } else {
+        // Normal level transition
         showTransitionMessage(gameState.currentLevel + 1, secondsRemaining);
     }
     
@@ -258,7 +270,13 @@ function updateTransition(deltaTime) {
         gameState.transitioning = false;
         messageElement.style.display = 'none';
         
-        if (gameState.currentLevel < gameState.maxLevel) {
+        if (gameState.currentLevel === gameState.maxLevel) {
+            // Reset to level 1 after completing all levels
+            gameState.currentLevel = 1;
+            gameState.gameOver = false;
+            loadLevel(gameState.currentLevel);
+        } else {
+            // Normal progression to next level
             gameState.currentLevel++;
             loadLevel(gameState.currentLevel);
         }
@@ -267,14 +285,16 @@ function updateTransition(deltaTime) {
 
 // Show game complete message
 function showGameCompleteMessage() {
+    gameState.transitioning = true;
+    gameState.transitionTimer = gameState.transitionDuration;
+    
     messageElement.innerHTML = `
         <h2>Congratulations!</h2>
         <p>You've completed all ${gameState.maxLevel} levels!</p>
-        <p>Press F5 to play again</p>
+        <p>Starting a new game in ${Math.ceil(gameState.transitionTimer)} seconds...</p>
     `;
     messageElement.style.backgroundColor = 'rgba(0, 100, 0, 0.8)';
     messageElement.style.display = 'block';
-    gameState.gameOver = true;
 }
 
 // Game over UI and functionality
@@ -328,7 +348,6 @@ function getRandomMazePosition(gameMap) {
         // Check if this position is not a wall
         if (!gameMap.isWall(x, z)) {
 
-            console.log('Found valid position:', x, z);
             // Return position with slight offset to center of cell
             return new THREE.Vector3(
                 x + 0.5,
@@ -463,8 +482,13 @@ function checkExitReached() {
         gameState.escaped = true;
         gameState.escapeTime = (Date.now() - gameState.startTime) / 1000; // in seconds
         
-        // Display victory message and begin next level transition
-        startNextLevelTransition();
+        if (gameState.currentLevel === gameState.maxLevel) {
+            // Final level completed - show game complete message
+            showGameCompleteMessage();
+        } else {
+            // Not final level - start transition to next level
+            startNextLevelTransition();
+        }
     }
 }
 

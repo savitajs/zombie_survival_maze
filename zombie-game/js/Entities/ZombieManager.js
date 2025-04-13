@@ -21,10 +21,10 @@ export class ZombieManager {
         // Store the required zombie count for this level
         this.zombieCount = gameMap.getZombieCount();
 
-        // Add movement configuration
+        // Add movement configuration - DEFAULT VALUES  
         this.movementConfig = {
-            speed: 5.0,           // Base movement speed
-            turnRate: 0.8,        // How quickly zombies can turn
+            speed: 15.0,           // Base movement speed
+            turnRate: 1.0,        // How quickly zombies can turn
         };
 
         this.collisionHandler = new ZombieCollisionHandler(gameMap);
@@ -41,12 +41,12 @@ export class ZombieManager {
 
         this.playerAttacking = false; // Track player attacks
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'x') {
+            if (e.key === 'x' || e.key === 'X') {
                 this.playerAttacking = true;
             }
         });
         document.addEventListener('keyup', (e) => {
-            if (e.key === 'x') {
+            if (e.key === 'x' || e.key === 'X') {
                 this.playerAttacking = false;
             }
         });
@@ -239,10 +239,11 @@ export class ZombieManager {
                         model: zombieModelInstance,
                         position: position.clone(),
                         velocity: new THREE.Vector3(1, 0, 0),
-                        speed: 5.0,
+                        speed: 15.0,
                         currentAnimation: null,
                         actions: {}, // Animation actions for this specific zombie
-                        gltf: gltf // Store the entire gltf object
+                        gltf: gltf, // Store the entire gltf object
+                        hitPoints: 200 //Points given to each Zombie to keep track of zombie life/death
                     };
                     
                     // Set up animation mixer for this specific zombie instance
