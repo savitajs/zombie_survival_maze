@@ -115,4 +115,27 @@ export class MinHeap {
     }
     return -1;
   }
+
+  // Check if the heap contains a node
+  contains(node) {
+    return this.findIndex(node) !== -1;
+  }
+
+  // Update the priority of a node
+  updatePriority(node, priority) {
+    const index = this.findIndex(node);
+    if (index === -1) return;
+
+    const oldPriority = this.heap[index][1];
+    this.heap[index][1] = priority;
+
+    // If new priority is lower, heapify up
+    if (priority < oldPriority) {
+      this.heapifyUp(index);
+    } 
+    // If new priority is higher, heapify down
+    else if (priority > oldPriority) {
+      this.heapifyDown(index);
+    }
+  }
 }

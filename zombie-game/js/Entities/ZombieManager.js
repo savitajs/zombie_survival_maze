@@ -453,7 +453,7 @@ export class ZombieManager {
         const zombiesToRemove = [];
 
         // Update all zombies
-        this.zombies.forEach(zombie => {
+        this.zombies.forEach((zombie, index) => {
             // Check if this zombie is marked for removal due to death animation
             if (zombie.markedForRemoval) {
                 zombie.removalTimer -= deltaTime;
@@ -468,7 +468,7 @@ export class ZombieManager {
             const stateUpdateResult = zombie.state.update(playerPosition, this.playerAttacking, path, healthManager, deltaTime);
             
             // Update debug displays with path distance - only for the first zombie
-            if (zombie === this.zombies[0]) {
+            if (index === 0) {
                 this.stateDebug.updateState(stateUpdateResult.animation, stateUpdateResult.pathDistance);
                 
                 // Clear path if state indicates it should be cleared
@@ -484,7 +484,6 @@ export class ZombieManager {
 
             // Set animation according to state
             // Map state animation names to actual available animation names
-            // Updated to match the correct case for parasite_zombie model animations
             const animationMap = {
                 'Idle': 'Idle', 
                 'Walk': 'Run', // Use Run for Walk since there's no Walk animation
@@ -501,7 +500,6 @@ export class ZombieManager {
                 console.warn(`Animation "${stateUpdateResult.animation}" not mapped to an available animation`);
             }
 
-            // *** CRITICAL FIX: Don't return early, otherwise we'll only update the first zombie ***
             // Only continue with movement logic if the state indicates movement is allowed
             if (stateUpdateResult.shouldMove) {
                 let steeringForce = new THREE.Vector3();
@@ -514,12 +512,60 @@ export class ZombieManager {
                 // Apply movement updates
                 zombie.velocity.add(steeringForce.multiplyScalar(deltaTime));
                 
-                // Update velocity and position
+                // Apply collision avoidance - use the collision handler we already have
+                const avoidanceResult = this.collisionHandler.getAvoidanceForce(zombie);
+                if (avoidanceResult.isAvoiding) {
+                    // Apply the avoidance force to steer away from walls
+                    zombie.velocity.add(avoidanceResult.force.multiplyScalar(deltaTime * 2.0));
+                }
+                
+                // Pass whisker info to debug visualization for ALL zombies, not just the first one
+                // Create dynamic debug objects for each zombie on first encounter
+                if (!zombie.whiskerDebug) {
+                    zombie.whiskerDebug = new WhiskerDebug(this.scene);
+                    // Link this whisker's visibility to the main debug's visibility
+                    zombie.whiskerDebug.visible = this.debug.visible;
+                }
+                
+                // Create endpoints for visualization
+                const startPos = zombie.position.clone();
+                const centerEnd = startPos.clone().add(avoidanceResult.whiskerInfo.center.ray);
+                const leftEnd = startPos.clone().add(avoidanceResult.whiskerInfo.left.ray);
+                const rightEnd = startPos.clone().add(avoidanceResult.whiskerInfo.right.ray);
+                
+                // Update debug visualization with whisker hits
+                zombie.whiskerDebug.updateWhiskers(
+                    startPos,
+                    centerEnd,
+                    leftEnd,
+                    rightEnd,
+                    {
+                        center: avoidanceResult.whiskerInfo.center.hit,
+                        left: avoidanceResult.whiskerInfo.left.hit,
+                        right: avoidanceResult.whiskerInfo.right.hit,
+                        leftDiag: avoidanceResult.whiskerInfo.leftDiag,
+                        rightDiag: avoidanceResult.whiskerInfo.rightDiag
+                    }
+                );
+                
+                // Only update detection radius for the first zombie
+                if (index === 0) {
+                    this.debug.updateDetectionRadius(zombie.position, this.detectionRadius);
+                }
+                
                 if (zombie.velocity.length() > zombie.speed) {
                     zombie.velocity.normalize().multiplyScalar(zombie.speed);
                 }
                 
-                zombie.position.add(zombie.velocity.clone().multiplyScalar(deltaTime));
+                // Check if next position would cause collision
+                const collisionCheck = this.collisionHandler.checkCollision(zombie.position, zombie.velocity, deltaTime);
+                if (collisionCheck.willCollide) {
+                    // Use safe position from collision handler instead
+                    zombie.position.copy(collisionCheck.nextPosition);
+                } else {
+                    // Normal movement
+                    zombie.position.add(zombie.velocity.clone().multiplyScalar(deltaTime));
+                }
                 
                 // Calculate the correct Y position based on the zombie model's height
                 const zombieBox = new THREE.Box3().setFromObject(zombie.model);

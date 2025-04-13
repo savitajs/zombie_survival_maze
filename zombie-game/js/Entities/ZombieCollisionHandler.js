@@ -4,15 +4,24 @@ export class ZombieCollisionHandler {
     constructor(gameMap) {
         this.gameMap = gameMap;
         this.params = {
-            lookAhead: 12,        // Increased distance to look ahead for better anticipation
-            whiskerAngle: Math.PI/4, // Wider angle (45 degrees) to detect more walls
-            whiskerLength: 8      // Increased whisker length for better detection
+            lookAhead: 8,          // Reduced from 12 to 8
+            whiskerAngle: Math.PI/4, 
+            whiskerLength: 5       // Reduced from 8 to 5
         };
     }
 
     detectCollision(position, ray) {
         const rayDirection = ray.clone().normalize();
         return this.gameMap.isWallNearby(position, rayDirection, ray.length());
+    }
+
+    detectMovingCollision(position, ray, moveDir) {
+        const rayDirection = ray.clone().normalize();
+        
+        // Only detect collision if moving toward the wall (dot product > 0)
+        const movingToward = rayDirection.dot(moveDir) > 0;
+        
+        return movingToward && this.gameMap.isWallNearby(position, rayDirection, ray.length());
     }
 
     getAvoidanceForce(zombie) {
@@ -28,15 +37,18 @@ export class ZombieCollisionHandler {
         // Set whisker lengths
         whisker1.setLength(this.params.whiskerLength);
         whisker2.setLength(this.params.whiskerLength);
-        whisker3.setLength(this.params.lookAhead * 0.8);
-        whisker4.setLength(this.params.lookAhead * 0.8);
+        whisker3.setLength(this.params.lookAhead * 0.7);
+        whisker4.setLength(this.params.lookAhead * 0.7);
 
-        // Check collisions
-        const centerHit = this.detectCollision(zombie.position, center);
-        const whisker1Hit = this.detectCollision(zombie.position, whisker1);
-        const whisker2Hit = this.detectCollision(zombie.position, whisker2);
-        const whisker3Hit = this.detectCollision(zombie.position, whisker3);
-        const whisker4Hit = this.detectCollision(zombie.position, whisker4);
+        // Check collisions - Only detect walls in the direction zombie is moving
+        const zombieDir = zombie.velocity.clone().normalize();
+        
+        // Only check collisions in direction of movement (dot product > 0)
+        const centerHit = this.detectMovingCollision(zombie.position, center, zombieDir);
+        const whisker1Hit = this.detectMovingCollision(zombie.position, whisker1, zombieDir);
+        const whisker2Hit = this.detectMovingCollision(zombie.position, whisker2, zombieDir);
+        const whisker3Hit = this.detectMovingCollision(zombie.position, whisker3, zombieDir);
+        const whisker4Hit = this.detectMovingCollision(zombie.position, whisker4, zombieDir);
 
         // Calculate avoidance force with increased strength
         const avoidanceForce = new THREE.Vector3();
@@ -45,22 +57,22 @@ export class ZombieCollisionHandler {
             if (centerHit) {
                 // Turn perpendicular to the wall, with stronger force
                 const perpendicular = new THREE.Vector3(-center.z, 0, center.x);
-                avoidanceForce.add(perpendicular.multiplyScalar(2.0)); // Stronger perpendicular force
+                avoidanceForce.add(perpendicular.multiplyScalar(1.5)); // Reduced from 2.0
             }
             if (whisker1Hit) {
-                avoidanceForce.sub(whisker1.multiplyScalar(1.5));
+                avoidanceForce.sub(whisker1.multiplyScalar(1.2)); // Reduced from 1.5
             }
             if (whisker2Hit) {
-                avoidanceForce.sub(whisker2.multiplyScalar(1.5));
+                avoidanceForce.sub(whisker2.multiplyScalar(1.2)); // Reduced from 1.5
             }
             if (whisker3Hit) {
-                avoidanceForce.sub(whisker3.multiplyScalar(1.2));
+                avoidanceForce.sub(whisker3);
             }
             if (whisker4Hit) {
-                avoidanceForce.sub(whisker4.multiplyScalar(1.2));
+                avoidanceForce.sub(whisker4);
             }
 
-            avoidanceForce.normalize().multiplyScalar(2.0); // Increase overall avoidance force
+            avoidanceForce.normalize().multiplyScalar(1.5); // Reduced from 2.0
         }
 
         return {
