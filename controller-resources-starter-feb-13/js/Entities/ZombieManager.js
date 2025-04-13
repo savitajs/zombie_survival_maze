@@ -534,7 +534,7 @@ export class ZombieManager {
                 // Position the zombie with half its height as Y value to keep it above ground
                 zombie.model.position.set(
                     zombie.position.x,
-                    zombieHeight,
+                    10 + zombieHeight, // Adjusted to keep it above ground
                     zombie.position.z
                 );
 

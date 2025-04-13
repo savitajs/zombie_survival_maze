@@ -332,7 +332,7 @@ export class Player extends Character {
         
         // Calculate next position based on velocity
         const nextPosition = currentPosition.clone().addScaledVector(this.velocity, deltaTime);
-        nextPosition.y = 16; // Maintain height above ground
+        nextPosition.y = 25; // Maintain height above ground
         
         // Player collision radius (half of the cone's base size)
         const radius = 1.0; // Slightly larger than before for better collision detection
