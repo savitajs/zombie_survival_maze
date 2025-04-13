@@ -58,7 +58,7 @@ export class ZombieManager {
         const loader = new GLTFLoader();
         
         // First try with the correct path
-        const modelPath = './public/models/parasite_zombie.glb';
+        const modelPath = './models/parasite_zombie.glb';
         console.log('Attempting to load zombie model from:', modelPath);
         
         loader.load(
@@ -214,18 +214,10 @@ export class ZombieManager {
         // Important: Load a fresh copy of the model for each zombie to ensure proper animation
         // This is more reliable than cloning for complex models with animations
         const loader = new GLTFLoader();
-        
-        // Try both paths
-        const tryPaths = ['./public/models/parasite_zombie.glb', './models/parasite_zombie.glb'];
         let loadAttempt = 0;
         
         const loadModelAtPath = (pathIndex) => {
-            if (pathIndex >= tryPaths.length) {
-                console.error('Failed to load zombie model after trying all paths');
-                return;
-            }
-            
-            const path = tryPaths[pathIndex];
+            const path = './models/parasite_zombie.glb';
             console.log(`Loading zombie model from ${path} (attempt ${pathIndex + 1})`);
             
             loader.load(
