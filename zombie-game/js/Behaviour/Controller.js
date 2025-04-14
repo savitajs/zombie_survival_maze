@@ -170,26 +170,6 @@ export class Controller {
       // Get right vector perpendicular to camera direction
       const right = new THREE.Vector3(-cameraDirection.z, 0, cameraDirection.x);
 
-      // Log camera orientation for debugging
-      if (this.debugMovement) {
-        console.log('[CAMERA_LIVE] Camera orientation:', {
-          camera_pos: this.camera.position,
-          camera_direction: cameraDirection,
-          intended_movement: {
-            forward: this.forward,
-            right: this.right,
-            backward: this.backward,
-            left: this.left
-          }
-        });
-      }
-
-      // Combine movements based on camera orientation
-      // if (this.forward) this.moveVector.add(cameraDirection);
-      // if (this.backward) this.moveVector.sub(cameraDirection);
-      // if (this.right) this.moveVector.add(right);
-      // if (this.left) this.moveVector.sub(right);
-
       if (this.forward) this.moveVector.z = -1;  // Forward
       if (this.backward) this.moveVector.z = 1;  // Backward
       if (this.left) this.moveVector.x = -1;     // Left

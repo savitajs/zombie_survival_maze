@@ -60,13 +60,12 @@ export class ZombieManager {
         
         // First try with the correct path
         const modelPath = './models/parasite_zombie.glb';
-        console.log('Attempting to load zombie model from:', modelPath);
+        
         
         loader.load(
             modelPath,
             (gltf) => {
                 console.log('Zombie model loaded successfully');
-                console.log('Available animations:', gltf.animations.map(a => a.name));
                 
                 this.zombieModel = gltf.scene;
                 
@@ -82,16 +81,13 @@ export class ZombieManager {
                 this.zombieModel.position.set(0, height, 0);
                 this.zombieModel.rotation.y = Math.PI;
                 
-                console.log('Model loaded with height:', height);
-                
                 // Store original animation clips in a map for easier access
                 gltf.animations.forEach(clip => {
                     this.animationClips[clip.name] = clip;
-                    console.log('Animation clip stored:', clip.name, 'duration:', clip.duration);
+                    
                 });
                 
                 // Debug the model structure
-                console.log('Model structure:');
                 this.debugObject(this.zombieModel);
                 
                 this.spawnInitialZombies();
@@ -110,7 +106,7 @@ export class ZombieManager {
                     altPath,
                     (gltf) => {
                         console.log('Zombie model loaded successfully from alternate path');
-                        console.log('Available animations:', gltf.animations.map(a => a.name));
+                        
                         
                         this.zombieModel = gltf.scene;
                         
@@ -126,12 +122,12 @@ export class ZombieManager {
                         this.zombieModel.position.set(0, height, 0);
                         this.zombieModel.rotation.y = Math.PI;
                         
-                        console.log('Model loaded with height:', height);
+                        
                         
                         // Store original animation clips in a map for easier access
                         gltf.animations.forEach(clip => {
                             this.animationClips[clip.name] = clip;
-                            console.log('Animation clip stored:', clip.name, 'duration:', clip.duration);
+                            
                         });
                         
                         this.spawnInitialZombies();
@@ -152,7 +148,6 @@ export class ZombieManager {
     debugObject(object, indent = '') {
         if (!object) return;
         
-        console.log(indent + 'Object name:', object.name || 'unnamed', 'type:', object.type);
         
         if (object.animations) {
             console.log(indent + 'Animations:', object.animations.length);
@@ -210,7 +205,6 @@ export class ZombieManager {
         };
 
         const position = getValidSpawnPosition();
-        console.log('Spawning zombie at:', position);
         
         // Important: Load a fresh copy of the model for each zombie to ensure proper animation
         // This is more reliable than cloning for complex models with animations
@@ -219,12 +213,12 @@ export class ZombieManager {
         
         const loadModelAtPath = (pathIndex) => {
             const path = './models/parasite_zombie.glb';
-            console.log(`Loading zombie model from ${path} (attempt ${pathIndex + 1})`);
+            
             
             loader.load(
                 path,
                 (gltf) => {
-                    console.log(`Individual zombie model loaded from ${path}`);
+                    
                     
                     const zombieModelInstance = gltf.scene;
                     zombieModelInstance.scale.set(8.0, 8.0, 8.0);
@@ -260,14 +254,14 @@ export class ZombieManager {
                             // Create action directly from this model's own animations
                             const action = mixer.clipAction(clip);
                             newZombie.actions[clip.name] = action;
-                            console.log(`Created animation action "${clip.name}" for new zombie`);
+                            
                         });
                         
                         // Start with Idle animation if available
                         if (newZombie.actions['Idle']) {
                             newZombie.actions['Idle'].play();
                             newZombie.currentAnimation = 'Idle';
-                            console.log('Started Idle animation for new zombie');
+                            
                         } else if (Object.keys(newZombie.actions).length > 0) {
                             // If no 'Idle' animation, use the first available animation
                             const firstAnimName = Object.keys(newZombie.actions)[0];
@@ -277,7 +271,7 @@ export class ZombieManager {
                         }
                     } else {
                         // Fall back to using stored animation clips
-                        console.log('No animations in model, using stored animation clips');
+                        
                         for (const clipName in this.animationClips) {
                             const action = mixer.clipAction(this.animationClips[clipName]);
                             newZombie.actions[clipName] = action;
@@ -300,8 +294,7 @@ export class ZombieManager {
                     
                     this.zombies.push(newZombie);
                     
-                    // Log success
-                    console.log(`Zombie #${this.zombies.length} added to scene successfully`);
+                    
                 },
                 undefined,
                 (error) => {
@@ -347,7 +340,7 @@ export class ZombieManager {
             
             // Set removal timer
             zombie.removalTimer = animationDuration;
-            console.log(`Zombie marked for removal in ${animationDuration.toFixed(2)} seconds`);
+            
         }
 
         // Fade in new animation
@@ -604,28 +597,6 @@ export class ZombieManager {
         if (zombiesToRemove.length > 0) {
             this.removeZombies(zombiesToRemove);
         }
-
-        // Log positions every 20 seconds (but only if we have zombies)
-        if (this.zombies.length > 0) {
-            const currentTime = Date.now();
-            if (currentTime - this.lastPositionLog >= this.positionLogInterval) {
-                console.log('Position Log:');
-                console.log('Player:', {
-                    x: Math.round(playerPosition.x * 100) / 100,
-                    y: Math.round(playerPosition.y * 100) / 100,
-                    z: Math.round(playerPosition.z * 100) / 100
-                });
-                this.zombies.forEach((zombie, index) => {
-                    console.log(`Zombie ${index}:`, {
-                        x: Math.round(zombie.position.x * 100) / 100,
-                        y: Math.round(zombie.position.y * 100) / 100,
-                        z: Math.round(zombie.position.z * 100) / 100,
-                        animation: zombie.currentAnimation
-                    });
-                });
-                this.lastPositionLog = currentTime;
-            }
-        }
     }
 
     cleanup() {
@@ -665,6 +636,6 @@ export class ZombieManager {
             }
         });
         
-        console.log(`${zombiesToRemove.length} zombies removed from the scene`);
+        
     }
 }

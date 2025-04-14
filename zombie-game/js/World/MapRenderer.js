@@ -148,7 +148,7 @@ export class MapRenderer {
     }
     
     this.exitWallPosition = exitWallPosition;
-    console.log(`Exit wall selected: ${exitWallPosition.side} side at (${exitWallPosition.i}, ${exitWallPosition.j})`);
+    
   }
  
   // To create the actual game object

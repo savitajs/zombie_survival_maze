@@ -66,14 +66,12 @@ export class Player extends Character {
     
     const tryLoadModel = (pathIndex) => {
       const path = './models/remi.glb';
-      console.log(`Loading player model from: ${path}`);
+      
       
       loader.load(
         path,
         (gltf) => {
-          console.log('Player model loaded successfully');
-          console.log('Available animations for Player:', gltf.animations.map(a => a.name));
-          
+
           // Store the model
           const model = gltf.scene;
           
@@ -124,14 +122,13 @@ export class Player extends Character {
             // Store animation durations for debugging
             this.animationDebug.durations[clip.name] = clip.duration;
             
-            console.log(`Animation "${clip.name}" prepared, duration: ${clip.duration.toFixed(2)}s`);
           });
           
           // Add animation finished callback
           this.mixer.addEventListener('loop', (e) => {
             const clipName = e.action._clip.name;
             this.animationDebug.loopCount++;
-            console.log(`Animation "${clipName}" completed a loop (${this.animationDebug.loopCount})`);
+            
           });
           
           // Start with the Idle animation
@@ -163,8 +160,6 @@ export class Player extends Character {
       console.warn(`Animation '${name}' not found for player`);
       return;
     }
-    
-    console.log(`Changing player animation to ${name} (duration: ${this.animationDebug.durations[name]?.toFixed(2)}s)`);
     
     // Set transition time based on whether this is an immediate transition
     const transitionTime = immediate ? 0.1 : 0.5;
@@ -241,8 +236,6 @@ export class Player extends Character {
           const currentTime = this.animationDebug.animationTime % duration;
           const progress = Math.floor((currentTime / duration) * 100);
           
-          //console.log(`Animation "${this.currentAnimation}": ${currentTime.toFixed(2)}s / ${duration.toFixed(2)}s (${progress}% complete)`);
-          
           this.animationDebug.lastLogTime = Math.floor(this.animationDebug.animationTime);
         }
       }
@@ -300,38 +293,6 @@ export class Player extends Character {
     // Update state behavior
     this.state.updateState(this, controller);
     
-    // Apply force from controller input if moving
-    // if (currentlyMoving) {
-    //     const moveForce = controller.getMoveForce();
-    //     const cameraAngle = Math.atan2(
-    //         controller.camera.position.x - this.location.x,
-    //         controller.camera.position.z - this.location.z
-    //     );
-
-    //     // Transform the movement force based on camera angle
-    //     const transformedForce = new THREE.Vector3();
-    //     transformedForce.x = moveForce.x * Math.cos(cameraAngle) - moveForce.z * Math.sin(cameraAngle);
-    //     transformedForce.z = moveForce.x * Math.sin(cameraAngle) + moveForce.z * Math.cos(cameraAngle);
-    //     transformedForce.y = 0;
-
-    //     this.applyForce(transformedForce);
-        
-    //     // Update player rotation to face movement direction
-    //     if (transformedForce.length() > 0.1) {
-    //         const targetAngle = Math.atan2(transformedForce.x, transformedForce.z);
-    //         this.gameObject.rotation.y = targetAngle;
-            
-    //         // Update forward vector for camera positioning
-    //         this.forward.set(
-    //             Math.sin(targetAngle),
-    //             0,
-    //             Math.cos(targetAngle)
-    //         ).normalize();
-    //     }
-    // } else {
-    //     // Immediately stop when no movement input is received
-    //     this.velocity.set(0, 0, 0);
-    // }
     
     // Update physics
     this.velocity.addScaledVector(this.acceleration, deltaTime);
@@ -487,9 +448,4 @@ export class Player extends Character {
     return this.health;
   }
   
-  setColor(color) {
-    // For compatibility with the old Character class
-    // This doesn't affect the GLB model, but prevents errors
-    console.log(`Setting player color to ${color} (visual effect not applied to GLB model)`);
-  }
 }

@@ -72,7 +72,7 @@ class ZombieAnimationTest {
         loader.load(
             './models/parasite_zombie.glb',
             (gltf) => {
-                console.log('Model loaded successfully!');
+                
                 
                 // Store animation clips
                 gltf.animations.forEach(clip => {

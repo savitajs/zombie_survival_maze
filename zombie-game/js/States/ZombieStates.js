@@ -45,8 +45,7 @@ export class ApproachState extends ZombieBaseState {
         
         
         if (xzDistance <= attackRange) {
-            console.log("ZombieStates.js: Player detected within attack range.");
-            console.log("XZ Distance: " + xzDistance);
+
             console.log("ZombieStates.js: Changing state to ATTACK.");
             return new AttackState().enterState(zombie);
         }
