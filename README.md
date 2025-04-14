@@ -102,5 +102,10 @@ Zombie Survival Maze is a 3D game where you navigate through procedurally genera
 - Zombies can be defeated when attacked at close range
 - Each level has a timer showing how long you've been surviving
 
+## Known Issues and how to get around
+- The player's "Attack" animation doesn't play everytime "X" key is pressed. But the attack state is still triggered and it still damages the zombies. Keep pressing the "X" key and notice the health of the zombies.
+- Sometimes player is spawned where it cannot move. Just reload the web page.
+- Some zombies are spawned underneath the ground, but as they start running, they are brought above the ground.
+
 ## Credits
 Models are sourced from online repositories with attribution provided in REFERENCES.md.
