@@ -13,7 +13,10 @@ Zombie Survival Maze is a 3D game where you navigate through procedurally genera
 - **Mouse**: Control the camera direction when mouse control is enabled
 - **M**: Toggle mouse camera control
 - **X**: Attack zombies (when close enough)
+
+## Dev Controls (For debugging)
 - **F**: Toggle free camera mode (for debugging and overview)
+- **I, J, K, L**: Move camera when in free camera mode (for debugging and overview)
 
 ## Game Features
 - Procedurally generated maze for each level
