@@ -1,4 +1,4 @@
-# Game Systems Documentation
+# Who did what
 
 ## Player Systems
 
@@ -101,3 +101,9 @@
 ### State Management
 - Game state tracking (Anuj Sevak)
 - Level progression (Anuj Sevak)
+
+## README
+- README.md (Anuj Sevak)
+
+## Presentation
+- Slides (Anuj Sevak)
